@@ -1,6 +1,7 @@
 package com.ntt.gestao.financeira.controller;
 
 import com.ntt.gestao.financeira.dto.request.TransacaoRequestDTO;
+import com.ntt.gestao.financeira.dto.request.TransacaoTransferenciaDTO;
 import com.ntt.gestao.financeira.dto.response.TransacaoResponseDTO;
 import com.ntt.gestao.financeira.service.TransacaoService;
 import jakarta.validation.Valid;
@@ -45,5 +46,11 @@ public class TransacaoController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deletar(@PathVariable Long id) {
         service.deletar(id);
+    }
+
+    @PostMapping("/transferencia")
+    @ResponseStatus(HttpStatus.OK)
+    public void transferir(@Valid @RequestBody TransacaoTransferenciaDTO dto) {
+        service.transferir(dto);
     }
 }
