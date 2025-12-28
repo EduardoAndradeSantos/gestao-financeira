@@ -1,0 +1,44 @@
+package com.ntt.gestao.financeira.entity;
+
+import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import lombok.*;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+
+@Entity
+@Table(name = "transacoes")
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class Transacao {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @NotBlank(message = "Descrição é obrigatória")
+    private String descricao;
+
+    @NotNull(message = "Valor é obrigatório")
+    private BigDecimal valor;
+
+    @NotNull(message = "Data é obrigatória")
+    private LocalDate data;
+
+    @Enumerated(EnumType.STRING)
+    @NotNull(message = "Tipo de transação é obrigatório")
+    private TipoTransacao tipo;
+
+    @Enumerated(EnumType.STRING)
+    @NotNull(message = "Categoria é obrigatória")
+    private CategoriaTransacao categoria;
+
+    @ManyToOne
+    @JoinColumn(name = "usuario_id", nullable = false)
+    @NotNull(message = "Usuário é obrigatório")
+    private Usuario usuario;
+}
