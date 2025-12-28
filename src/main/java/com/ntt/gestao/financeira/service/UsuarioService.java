@@ -5,18 +5,22 @@ import com.ntt.gestao.financeira.dto.response.UsuarioResponseDTO;
 import com.ntt.gestao.financeira.entity.Usuario;
 import com.ntt.gestao.financeira.exception.ConflitoDeDadosException;
 import com.ntt.gestao.financeira.exception.RecursoNaoEncontradoException;
+import com.ntt.gestao.financeira.repository.TransacaoRepository;
 import com.ntt.gestao.financeira.repository.UsuarioRepository;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @Service
 public class UsuarioService {
 
     private final UsuarioRepository repository;
+    private final TransacaoRepository transacaoRepository;
 
-    public UsuarioService(UsuarioRepository repository) {
+    public UsuarioService(UsuarioRepository repository, TransacaoRepository transacaoRepository) {
         this.repository = repository;
+        this.transacaoRepository = transacaoRepository;
     }
 
     public UsuarioResponseDTO salvar(UsuarioRequestDTO dto) {
@@ -81,5 +85,12 @@ public class UsuarioService {
                 usuario.getEmail(),
                 usuario.getNumeroConta()
         );
+    }
+
+    public BigDecimal consultarSaldo(String numeroConta) {
+        Usuario usuario = repository.findByNumeroConta(numeroConta)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Conta não encontrada"));
+
+        return transacaoRepository.calcularSaldoUsuario(usuario.getId());
     }
 }

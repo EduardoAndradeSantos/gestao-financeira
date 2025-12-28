@@ -7,6 +7,7 @@ import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @RestController
@@ -45,5 +46,10 @@ public class UsuarioController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deletar(@PathVariable Long id) {
         service.deletar(id);
+    }
+
+    @GetMapping("/{conta}/saldo")
+    public BigDecimal consultarSaldo(@PathVariable String conta) {
+        return service.consultarSaldo(conta);
     }
 }
