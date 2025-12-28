@@ -3,6 +3,8 @@ package com.ntt.gestao.financeira.service;
 import com.ntt.gestao.financeira.dto.request.UsuarioRequestDTO;
 import com.ntt.gestao.financeira.dto.response.UsuarioResponseDTO;
 import com.ntt.gestao.financeira.entity.Usuario;
+import com.ntt.gestao.financeira.exception.ConflitoDeDadosException;
+import com.ntt.gestao.financeira.exception.RecursoNaoEncontradoException;
 import com.ntt.gestao.financeira.repository.UsuarioRepository;
 import org.springframework.stereotype.Service;
 
@@ -19,10 +21,11 @@ public class UsuarioService {
 
     public UsuarioResponseDTO salvar(UsuarioRequestDTO dto) {
         if (repository.existsByCpf(dto.cpf())) {
-            throw new RuntimeException("CPF já cadastrado!");
+            throw new ConflitoDeDadosException("CPF já cadastrado!");
         }
         if (repository.existsByEmail(dto.email())) {
-            throw new RuntimeException("Email já cadastrado!");
+            throw new ConflitoDeDadosException("Email já cadastrado!");
+
         }
 
         Usuario usuario = Usuario.builder()
@@ -44,13 +47,13 @@ public class UsuarioService {
 
     public UsuarioResponseDTO buscarPorId(Long id) {
         Usuario usuario = repository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Usuário não encontrado!"));
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Usuário não encontrado!"));
         return toDTO(usuario);
     }
 
     public UsuarioResponseDTO atualizar(Long id, UsuarioRequestDTO dto) {
         Usuario usuario = repository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Usuário não encontrado!"));
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Usuário não encontrado!"));
 
         usuario.setNome(dto.nome());
         usuario.setEndereco(dto.endereco());
