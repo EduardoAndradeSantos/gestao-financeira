@@ -31,6 +31,7 @@ public class UsuarioService {
                 .endereco(dto.endereco())
                 .email(dto.email())
                 .senha(dto.senha())
+                .numeroConta(gerarNumeroConta())
                 .build();
 
         Usuario salvo = repository.save(usuario);
@@ -63,13 +64,19 @@ public class UsuarioService {
         repository.deleteById(id);
     }
 
+    private String gerarNumeroConta() {
+        // Exemplo simples: 8 dígitos aleatórios
+        return String.valueOf((int) (Math.random() * 90000000) + 10000000);
+    }
+
     private UsuarioResponseDTO toDTO(Usuario usuario) {
         return new UsuarioResponseDTO(
                 usuario.getId(),
                 usuario.getNome(),
                 usuario.getCpf(),
                 usuario.getEndereco(),
-                usuario.getEmail()
+                usuario.getEmail(),
+                usuario.getNumeroConta()
         );
     }
 }
