@@ -1,18 +1,19 @@
-package com.ntt.gestao.financeira.dto.response;
+package com.ntt.gestao.financeira.dto.request;
 
 import com.ntt.gestao.financeira.entity.CategoriaTransacao;
 import com.ntt.gestao.financeira.entity.TipoTransacao;
-import jakarta.validation.constraints.NotNull;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 
-public record TransacaoResponseDTO(
-        Long id,
+public record TransacaoPorContaRequestDTO(
         String descricao,
         BigDecimal valor,
-        @NotNull LocalDateTime dataHora,
+        LocalDate data,
         TipoTransacao tipo,
         CategoriaTransacao categoria,
-        Long usuarioId
+        String numeroConta
 ) {}
+
+
+

@@ -37,4 +37,7 @@ public class Usuario {
 
     @NotBlank(message = "Senha é obrigatória")
     private String senha;
+
+    @Column(unique = true, nullable = false)
+    private String numeroConta;
 }
