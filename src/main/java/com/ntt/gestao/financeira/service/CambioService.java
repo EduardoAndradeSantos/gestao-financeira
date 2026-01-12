@@ -5,6 +5,8 @@ import com.ntt.gestao.financeira.dto.response.CotacaoResponseDTO;
 import com.ntt.gestao.financeira.dto.response.MoedaCambioDTO;
 import org.springframework.stereotype.Service;
 
+import java.time.DayOfWeek;
+import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.List;
 
@@ -22,6 +24,37 @@ public class CambioService {
     }
 
     public CotacaoResponseDTO buscarCotacao(String moeda, String data) {
-        return client.buscarCotacao(moeda, data);
+
+        // Converte String → LocalDate
+        LocalDate dataInformada = LocalDate.parse(data);
+
+        // Ajusta a data conforme regras da BrasilAPI
+        LocalDate dataConsulta = ajustarDataParaConsulta(dataInformada);
+
+        // Chamada final usando a data ajustada
+        return client.buscarCotacao(moeda, dataConsulta.toString());
+    }
+
+    /**
+     * BrasilAPI:
+     * - Não permite consultar o dia atual
+     * - Não retorna dados para finais de semana
+     */
+    private LocalDate ajustarDataParaConsulta(LocalDate data) {
+
+        LocalDate hoje = LocalDate.now();
+
+        // Se for hoje ou futuro, volta para ontem
+        if (!data.isBefore(hoje)) {
+            data = hoje.minusDays(1);
+        }
+
+        // Se cair em fim de semana, retrocede até dia útil
+        while (data.getDayOfWeek() == DayOfWeek.SATURDAY ||
+                data.getDayOfWeek() == DayOfWeek.SUNDAY) {
+            data = data.minusDays(1);
+        }
+
+        return data;
     }
 }
