@@ -31,4 +31,19 @@ public class RelatorioController {
                 )
                 .body(arquivo);
     }
+
+    @GetMapping("/{numeroConta}/pdf")
+    public ResponseEntity<byte[]> baixarPdf(@PathVariable String numeroConta) {
+
+        byte[] arquivo = service.gerarRelatorioPdf(numeroConta);
+
+        return ResponseEntity.ok()
+                .header(
+                        HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=relatorio-financeiro.pdf"
+                )
+                .contentType(MediaType.APPLICATION_PDF)
+                .body(arquivo);
+    }
+
 }
