@@ -7,6 +7,7 @@ import com.ntt.gestao.financeira.dto.response.TransacaoResponseDTO;
 import com.ntt.gestao.financeira.service.TransacaoService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -55,5 +56,15 @@ public class TransacaoController {
     ) {
         return service.salvarPorConta(dto);
     }
+
+    @GetMapping("/por-conta/{numeroConta}")
+    public ResponseEntity<List<TransacaoResponseDTO>> listarPorConta(
+            @PathVariable String numeroConta
+    ) {
+        return ResponseEntity.ok(
+                service.listarPorConta(numeroConta)
+        );
+    }
+
 
 }

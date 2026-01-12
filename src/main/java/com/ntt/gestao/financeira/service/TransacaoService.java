@@ -176,4 +176,20 @@ public class TransacaoService {
                 transacao.getUsuario().getId()
         );
     }
+
+    public List<TransacaoResponseDTO> listarPorConta(String numeroConta) {
+
+        List<Transacao> transacoes =
+                repository.findByUsuarioNumeroContaOrderByDataHoraDesc(numeroConta);
+
+        if (transacoes.isEmpty()) {
+            throw new RecursoNaoEncontradoException(
+                    "Nenhuma transação encontrada para a conta " + numeroConta
+            );
+        }
+
+        return transacoes.stream()
+                .map(this::toDTO)
+                .toList();
+    }
 }

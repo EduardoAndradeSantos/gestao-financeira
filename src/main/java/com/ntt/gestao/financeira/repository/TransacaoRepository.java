@@ -58,4 +58,6 @@ public interface TransacaoRepository extends JpaRepository<Transacao, Long> {
     BigDecimal totalDespesas(Long usuarioId);
 
     List<Transacao> findByUsuarioId(Long usuarioId);
+
+    List<Transacao> findByUsuarioNumeroContaOrderByDataHoraDesc(String numeroConta);
 }
