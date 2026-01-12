@@ -16,7 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -25,17 +25,23 @@ public class TransacaoService {
     private final TransacaoRepository repository;
     private final UsuarioRepository usuarioRepository;
 
-    public TransacaoService(TransacaoRepository repository, UsuarioRepository usuarioRepository) {
+    public TransacaoService(
+            TransacaoRepository repository,
+            UsuarioRepository usuarioRepository
+    ) {
         this.repository = repository;
         this.usuarioRepository = usuarioRepository;
     }
+
+    /* ==========================================================
+       ================= TRANSAÇÃO POR CONTA ====================
+       ========================================================== */
 
     public TransacaoResponseDTO salvarPorConta(TransacaoPorContaRequestDTO dto) {
 
         Usuario usuario = usuarioRepository.findByNumeroConta(dto.numeroConta())
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Conta não encontrada!"));
 
-        // REGRA DE NEGÓCIO
         CategoriaTransacao categoria = dto.categoria();
 
         if (dto.tipo() == TipoTransacao.RETIRADA && categoria == null) {
@@ -57,7 +63,7 @@ public class TransacaoService {
         Transacao transacao = Transacao.builder()
                 .descricao(dto.descricao())
                 .valor(dto.valor())
-                .data(dto.data())
+                .dataHora(LocalDateTime.now())
                 .tipo(dto.tipo())
                 .categoria(categoria)
                 .usuario(usuario)
@@ -66,26 +72,34 @@ public class TransacaoService {
         return toDTO(repository.save(transacao));
     }
 
+    /* ==========================================================
+       ================= CRUD PADRÃO ============================
+       ========================================================== */
+
     public List<TransacaoResponseDTO> listar() {
-        return repository.findAll().stream().map(this::toDTO).toList();
+        return repository.findAll()
+                .stream()
+                .map(this::toDTO)
+                .toList();
     }
 
     public TransacaoResponseDTO buscar(Long id) {
         Transacao transacao = repository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Transação não encontrada!"));
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Transação não encontrada!"));
         return toDTO(transacao);
     }
 
     public TransacaoResponseDTO atualizar(Long id, TransacaoRequestDTO dto) {
+
         Transacao transacao = repository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Transação não encontrada!"));
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Transação não encontrada!"));
 
         Usuario usuario = usuarioRepository.findById(dto.usuarioId())
-                .orElseThrow(() -> new RuntimeException("Usuário não encontrado!"));
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Usuário não encontrado!"));
 
+        // ❗ Data/hora NÃO é alterada
         transacao.setDescricao(dto.descricao());
         transacao.setValor(dto.valor());
-        transacao.setData(dto.data());
         transacao.setTipo(dto.tipo());
         transacao.setCategoria(dto.categoria());
         transacao.setUsuario(usuario);
@@ -97,17 +111,9 @@ public class TransacaoService {
         repository.deleteById(id);
     }
 
-    private TransacaoResponseDTO toDTO(Transacao transacao) {
-        return new TransacaoResponseDTO(
-                transacao.getId(),
-                transacao.getDescricao(),
-                transacao.getValor(),
-                transacao.getData(),
-                transacao.getTipo(),
-                transacao.getCategoria(),
-                transacao.getUsuario().getId()
-        );
-    }
+    /* ==========================================================
+       ===================== TRANSFERÊNCIA ======================
+       ========================================================== */
 
     @Transactional
     public void transferir(TransacaoTransferenciaDTO dto) {
@@ -127,21 +133,23 @@ public class TransacaoService {
             throw new ConflitoDeDadosException("Saldo insuficiente!");
         }
 
-        // RETIRADA da origem
+        LocalDateTime agora = LocalDateTime.now();
+
+        // DÉBITO (origem)
         Transacao debito = Transacao.builder()
                 .descricao(dto.descricao())
                 .valor(dto.valor())
-                .data(LocalDate.now())
+                .dataHora(agora)
                 .tipo(TipoTransacao.TRANSFERENCIA)
                 .categoria(CategoriaTransacao.OUTROS)
                 .usuario(origem)
                 .build();
 
-        // DEPÓSITO ao destino
+        // CRÉDITO (destino)
         Transacao credito = Transacao.builder()
                 .descricao(dto.descricao())
                 .valor(dto.valor())
-                .data(LocalDate.now())
+                .dataHora(agora)
                 .tipo(TipoTransacao.DEPOSITO)
                 .categoria(CategoriaTransacao.OUTROS)
                 .usuario(destino)
@@ -151,5 +159,19 @@ public class TransacaoService {
         repository.save(credito);
     }
 
+    /* ==========================================================
+       ====================== MAPEAMENTO ========================
+       ========================================================== */
 
+    private TransacaoResponseDTO toDTO(Transacao transacao) {
+        return new TransacaoResponseDTO(
+                transacao.getId(),
+                transacao.getDescricao(),
+                transacao.getValor(),
+                transacao.getDataHora(),
+                transacao.getTipo(),
+                transacao.getCategoria(),
+                transacao.getUsuario().getId()
+        );
+    }
 }

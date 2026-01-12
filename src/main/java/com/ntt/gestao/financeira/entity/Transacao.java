@@ -5,7 +5,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import java.math.BigDecimal;
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "transacoes")
@@ -27,7 +27,8 @@ public class Transacao {
     private BigDecimal valor;
 
     @NotNull(message = "Data é obrigatória")
-    private LocalDate data;
+    @Column(nullable = false)
+    private LocalDateTime dataHora;
 
     @Enumerated(EnumType.STRING)
     @NotNull(message = "Tipo de transação é obrigatório")

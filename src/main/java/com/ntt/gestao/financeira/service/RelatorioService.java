@@ -20,11 +20,15 @@ import java.awt.Color;
 import java.io.ByteArrayOutputStream;
 import java.math.BigDecimal;
 import java.text.NumberFormat;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Locale;
 
 @Service
 public class RelatorioService {
+
+    private static final DateTimeFormatter DATA_HORA_FORMATTER =
+            DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
 
     private final UsuarioRepository usuarioRepository;
     private final TransacaoRepository transacaoRepository;
@@ -48,7 +52,7 @@ public class RelatorioService {
 
         List<Transacao> transacoes = transacaoRepository.findByUsuarioId(usuario.getId())
                 .stream()
-                .sorted((a, b) -> a.getData().compareTo(b.getData()))
+                .sorted((a, b) -> a.getDataHora().compareTo(b.getDataHora()))
                 .toList();
 
         BigDecimal totalReceitas = transacoes.stream()
@@ -117,7 +121,7 @@ public class RelatorioService {
 
             // ===== Cabeçalho tabela =====
             Row tableHeader = sheet.createRow(rowIdx++);
-            tableHeader.createCell(0).setCellValue("Data");
+            tableHeader.createCell(0).setCellValue("Data/Hora");
             tableHeader.createCell(1).setCellValue("Descrição");
             tableHeader.createCell(2).setCellValue("Tipo");
             tableHeader.createCell(3).setCellValue("Categoria");
@@ -130,7 +134,9 @@ public class RelatorioService {
             // ===== Linhas =====
             for (Transacao t : transacoes) {
                 Row row = sheet.createRow(rowIdx++);
-                row.createCell(0).setCellValue(t.getData().toString());
+                row.createCell(0).setCellValue(
+                        t.getDataHora().format(DATA_HORA_FORMATTER)
+                );
                 row.createCell(1).setCellValue(t.getDescricao());
                 row.createCell(2).setCellValue(t.getTipo().name());
 
@@ -167,7 +173,7 @@ public class RelatorioService {
 
         List<Transacao> transacoes = transacaoRepository.findByUsuarioId(usuario.getId())
                 .stream()
-                .sorted((a, b) -> a.getData().compareTo(b.getData()))
+                .sorted((a, b) -> a.getDataHora().compareTo(b.getDataHora()))
                 .toList();
 
         BigDecimal totalReceitas = transacoes.stream()
@@ -215,7 +221,7 @@ public class RelatorioService {
             table.setWidths(new float[]{2f, 4f, 2f, 3f, 2f});
 
             Font headerFont = new Font(Font.HELVETICA, 10, Font.BOLD);
-            addHeader(table, "Data", headerFont);
+            addHeader(table, "Data/Hora", headerFont);
             addHeader(table, "Descrição", headerFont);
             addHeader(table, "Tipo", headerFont);
             addHeader(table, "Categoria", headerFont);
@@ -224,7 +230,9 @@ public class RelatorioService {
             Font cellFont = new Font(Font.HELVETICA, 10);
 
             for (Transacao t : transacoes) {
-                table.addCell(new PdfPCell(new Phrase(t.getData().toString(), cellFont)));
+                table.addCell(new PdfPCell(
+                        new Phrase(t.getDataHora().format(DATA_HORA_FORMATTER), cellFont)
+                ));
                 table.addCell(new PdfPCell(new Phrase(t.getDescricao(), cellFont)));
                 table.addCell(new PdfPCell(new Phrase(t.getTipo().name(), cellFont)));
 
