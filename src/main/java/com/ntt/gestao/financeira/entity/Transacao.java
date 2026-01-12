@@ -41,4 +41,8 @@ public class Transacao {
     @JoinColumn(name = "usuario_id", nullable = false)
     @NotNull(message = "Usuário é obrigatório")
     private Usuario usuario;
+
+    @ManyToOne
+    @JoinColumn(name = "conta_relacionada_id")
+    private Usuario contaRelacionada;
 }

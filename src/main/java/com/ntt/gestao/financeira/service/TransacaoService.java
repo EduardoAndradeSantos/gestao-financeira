@@ -143,6 +143,7 @@ public class TransacaoService {
                 .tipo(TipoTransacao.TRANSFERENCIA)
                 .categoria(CategoriaTransacao.OUTROS)
                 .usuario(origem)
+                .contaRelacionada(destino)
                 .build();
 
         // CRÉDITO (destino)
@@ -153,6 +154,7 @@ public class TransacaoService {
                 .tipo(TipoTransacao.DEPOSITO)
                 .categoria(CategoriaTransacao.OUTROS)
                 .usuario(destino)
+                .contaRelacionada(origem)
                 .build();
 
         repository.save(debito);

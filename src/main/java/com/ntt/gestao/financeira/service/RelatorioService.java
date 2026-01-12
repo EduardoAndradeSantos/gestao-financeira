@@ -125,15 +125,22 @@ public class RelatorioService {
             tableHeader.createCell(1).setCellValue("Descrição");
             tableHeader.createCell(2).setCellValue("Tipo");
             tableHeader.createCell(3).setCellValue("Categoria");
-            tableHeader.createCell(4).setCellValue("Valor");
+            tableHeader.createCell(4).setCellValue("Conta Relacionada");
+            tableHeader.createCell(5).setCellValue("Valor");
 
-            for (int i = 0; i <= 4; i++) {
+            for (int i = 0; i <= 5; i++) {
                 tableHeader.getCell(i).setCellStyle(headerStyle);
             }
 
             // ===== Linhas =====
             for (Transacao t : transacoes) {
                 Row row = sheet.createRow(rowIdx++);
+
+                String contaRel = "-";
+                if (t.getContaRelacionada() != null) {
+                    contaRel = t.getContaRelacionada().getNumeroConta();
+                }
+
                 row.createCell(0).setCellValue(
                         t.getDataHora().format(DATA_HORA_FORMATTER)
                 );
@@ -146,10 +153,11 @@ public class RelatorioService {
                 }
                 row.createCell(3).setCellValue(categoria);
 
-                row.createCell(4).setCellValue(moeda.format(t.getValor()));
+                row.createCell(4).setCellValue(contaRel); // 👈 AQUI
+                row.createCell(5).setCellValue(moeda.format(t.getValor()));
             }
 
-            for (int i = 0; i <= 4; i++) {
+            for (int i = 0; i <= 5; i++) {
                 sheet.autoSizeColumn(i);
             }
 
@@ -216,20 +224,27 @@ public class RelatorioService {
             document.add(new Paragraph("Saldo: " + moeda.format(saldo), boldFont));
             document.add(Chunk.NEWLINE);
 
-            PdfPTable table = new PdfPTable(5);
+            PdfPTable table = new PdfPTable(6);
             table.setWidthPercentage(100);
-            table.setWidths(new float[]{2f, 4f, 2f, 3f, 2f});
+            table.setWidths(new float[]{2.5f, 4f, 2f, 3f, 3f, 2f});
 
             Font headerFont = new Font(Font.HELVETICA, 10, Font.BOLD);
             addHeader(table, "Data/Hora", headerFont);
             addHeader(table, "Descrição", headerFont);
             addHeader(table, "Tipo", headerFont);
             addHeader(table, "Categoria", headerFont);
+            addHeader(table, "Conta Relacionada", headerFont);
             addHeader(table, "Valor", headerFont);
 
             Font cellFont = new Font(Font.HELVETICA, 10);
 
             for (Transacao t : transacoes) {
+
+                String contaRel = "-";
+                if (t.getContaRelacionada() != null) {
+                    contaRel = t.getContaRelacionada().getNumeroConta();
+                }
+
                 table.addCell(new PdfPCell(
                         new Phrase(t.getDataHora().format(DATA_HORA_FORMATTER), cellFont)
                 ));
@@ -241,6 +256,8 @@ public class RelatorioService {
                     categoria = t.getCategoria().name();
                 }
                 table.addCell(new PdfPCell(new Phrase(categoria, cellFont)));
+
+                table.addCell(new PdfPCell(new Phrase(contaRel, cellFont))); // 👈 AQUI
 
                 PdfPCell valorCell = new PdfPCell(
                         new Phrase(moeda.format(t.getValor()), cellFont)
