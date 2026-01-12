@@ -1,6 +1,7 @@
 package com.ntt.gestao.financeira.service;
 
 import com.ntt.gestao.financeira.dto.request.UsuarioRequestDTO;
+import com.ntt.gestao.financeira.dto.response.ImportacaoUsuarioResultadoDTO;
 import com.ntt.gestao.financeira.dto.response.UsuarioResponseDTO;
 import com.ntt.gestao.financeira.entity.Usuario;
 import com.ntt.gestao.financeira.exception.ConflitoDeDadosException;
@@ -8,8 +9,12 @@ import com.ntt.gestao.financeira.exception.RecursoNaoEncontradoException;
 import com.ntt.gestao.financeira.repository.TransacaoRepository;
 import com.ntt.gestao.financeira.repository.UsuarioRepository;
 import org.springframework.stereotype.Service;
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -93,4 +98,60 @@ public class UsuarioService {
 
         return transacaoRepository.calcularSaldoUsuario(usuario.getId());
     }
+
+    public ImportacaoUsuarioResultadoDTO importarUsuariosExcel(MultipartFile arquivo) {
+
+        int sucesso = 0;
+        int erros = 0;
+        List<String> mensagensErro = new ArrayList<>();
+
+        try (Workbook workbook = new XSSFWorkbook(arquivo.getInputStream())) {
+
+            Sheet sheet = workbook.getSheetAt(0);
+            int totalLinhas = sheet.getPhysicalNumberOfRows() - 1;
+
+            for (int i = 1; i <= totalLinhas; i++) {
+                Row row = sheet.getRow(i);
+
+                try {
+                    String nome = row.getCell(0).getStringCellValue();
+                    String cpf = row.getCell(1).getStringCellValue();
+                    String endereco = row.getCell(2).getStringCellValue();
+                    String email = row.getCell(3).getStringCellValue();
+                    String senha = row.getCell(4).getStringCellValue();
+
+                    Usuario usuario = Usuario.builder()
+                            .nome(nome)
+                            .cpf(cpf)
+                            .endereco(endereco)
+                            .email(email)
+                            .senha(senha)
+                            .numeroConta(gerarNumeroConta())
+                            .build();
+
+                    if (repository.existsByCpf(cpf) || repository.existsByEmail(email)) {
+                        throw new RuntimeException("CPF ou email já cadastrado");
+                    }
+
+                    repository.save(usuario);
+                    sucesso++;
+
+                } catch (Exception e) {
+                    erros++;
+                    mensagensErro.add("Linha " + (i + 1) + ": " + e.getMessage());
+                }
+            }
+
+            return new ImportacaoUsuarioResultadoDTO(
+                    totalLinhas,
+                    sucesso,
+                    erros,
+                    mensagensErro
+            );
+
+        } catch (Exception e) {
+            throw new RuntimeException("Erro ao processar o arquivo Excel");
+        }
+    }
+
 }
