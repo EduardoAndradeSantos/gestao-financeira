@@ -34,7 +34,6 @@ public class Transacao {
     private TipoTransacao tipo;
 
     @Enumerated(EnumType.STRING)
-    @NotNull(message = "Categoria é obrigatória")
     private CategoriaTransacao categoria;
 
     @ManyToOne

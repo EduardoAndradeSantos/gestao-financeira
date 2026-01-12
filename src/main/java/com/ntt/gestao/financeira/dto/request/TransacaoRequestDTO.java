@@ -13,6 +13,6 @@ public record TransacaoRequestDTO(
         @NotNull BigDecimal valor,
         @NotNull LocalDate data,
         @NotNull TipoTransacao tipo,
-        @NotNull CategoriaTransacao categoria,
+        CategoriaTransacao categoria,
         @NotNull Long usuarioId
 ) {}

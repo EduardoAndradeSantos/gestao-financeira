@@ -1,5 +1,6 @@
 package com.ntt.gestao.financeira.service;
 
+import com.ntt.gestao.financeira.dto.request.TransacaoPorContaRequestDTO;
 import com.ntt.gestao.financeira.dto.request.TransacaoRequestDTO;
 import com.ntt.gestao.financeira.dto.request.TransacaoTransferenciaDTO;
 import com.ntt.gestao.financeira.dto.response.TransacaoResponseDTO;
@@ -29,16 +30,36 @@ public class TransacaoService {
         this.usuarioRepository = usuarioRepository;
     }
 
-    public TransacaoResponseDTO salvar(TransacaoRequestDTO dto) {
-        Usuario usuario = usuarioRepository.findById(dto.usuarioId())
-                .orElseThrow(() -> new RuntimeException("Usuário não encontrado!"));
+    public TransacaoResponseDTO salvarPorConta(TransacaoPorContaRequestDTO dto) {
+
+        Usuario usuario = usuarioRepository.findByNumeroConta(dto.numeroConta())
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Conta não encontrada!"));
+
+        // REGRA DE NEGÓCIO
+        CategoriaTransacao categoria = dto.categoria();
+
+        if (dto.tipo() == TipoTransacao.RETIRADA && categoria == null) {
+            throw new ConflitoDeDadosException(
+                    "Categoria é obrigatória para transações do tipo RETIRADA"
+            );
+        }
+
+        if (dto.tipo() == TipoTransacao.DEPOSITO && categoria != null) {
+            throw new ConflitoDeDadosException(
+                    "Categoria não deve ser informada para transações do tipo DEPOSITO"
+            );
+        }
+
+        if (dto.tipo() == TipoTransacao.TRANSFERENCIA) {
+            categoria = CategoriaTransacao.OUTROS;
+        }
 
         Transacao transacao = Transacao.builder()
                 .descricao(dto.descricao())
                 .valor(dto.valor())
                 .data(dto.data())
                 .tipo(dto.tipo())
-                .categoria(dto.categoria())
+                .categoria(categoria)
                 .usuario(usuario)
                 .build();
 
@@ -129,5 +150,6 @@ public class TransacaoService {
         repository.save(debito);
         repository.save(credito);
     }
+
 
 }
