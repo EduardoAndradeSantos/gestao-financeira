@@ -14,6 +14,5 @@ public record TransacaoResponseDTO(
         @NotNull LocalDateTime dataHora,
         TipoTransacao tipo,
         CategoriaTransacao categoria,
-        Long usuarioId,
-        CambioTransacaoDTO cambio
+        Long usuarioId
 ) {}

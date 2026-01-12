@@ -66,12 +66,5 @@ public class TransacaoController {
         );
     }
 
-    @GetMapping("/{id}/cambio/{moeda}")
-    public TransacaoResponseDTO buscarComCambio(
-            @PathVariable Long id,
-            @PathVariable String moeda
-    ) {
-        return service.buscarComCambio(id, moeda);
-    }
 
 }

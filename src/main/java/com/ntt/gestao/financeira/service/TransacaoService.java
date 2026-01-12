@@ -3,8 +3,6 @@ package com.ntt.gestao.financeira.service;
 import com.ntt.gestao.financeira.dto.request.TransacaoPorContaRequestDTO;
 import com.ntt.gestao.financeira.dto.request.TransacaoRequestDTO;
 import com.ntt.gestao.financeira.dto.request.TransacaoTransferenciaDTO;
-import com.ntt.gestao.financeira.dto.response.CambioTransacaoDTO;
-import com.ntt.gestao.financeira.dto.response.CotacaoResponseDTO;
 import com.ntt.gestao.financeira.dto.response.TransacaoResponseDTO;
 import com.ntt.gestao.financeira.entity.CategoriaTransacao;
 import com.ntt.gestao.financeira.entity.TipoTransacao;
@@ -26,16 +24,13 @@ public class TransacaoService {
 
     private final TransacaoRepository repository;
     private final UsuarioRepository usuarioRepository;
-    private final CambioService cambioService;
 
     public TransacaoService(
             TransacaoRepository repository,
-            UsuarioRepository usuarioRepository,
-            CambioService cambioService
+            UsuarioRepository usuarioRepository
     ) {
         this.repository = repository;
         this.usuarioRepository = usuarioRepository;
-        this.cambioService = cambioService;
     }
 
     /* ==========================================================
@@ -178,8 +173,7 @@ public class TransacaoService {
                 transacao.getDataHora(),
                 transacao.getTipo(),
                 transacao.getCategoria(),
-                transacao.getUsuario().getId(),
-                null //sem câmbio
+                transacao.getUsuario().getId()
         );
     }
 
@@ -198,52 +192,4 @@ public class TransacaoService {
                 .map(this::toDTO)
                 .toList();
     }
-
-    public TransacaoResponseDTO buscarComCambio(Long id, String moeda) {
-
-        Transacao transacao = repository.findById(id)
-                .orElseThrow(() -> new RecursoNaoEncontradoException("Transação não encontrada"));
-
-        CotacaoResponseDTO cotacao =
-                cambioService.buscarCotacao(
-                        moeda,
-                        transacao.getDataHora().toLocalDate().toString()
-                );
-
-        // 🔐 VALIDAÇÕES OBRIGATÓRIAS
-        if (cotacao == null ||
-                cotacao.cotacoes() == null ||
-                cotacao.cotacoes().isEmpty() ||
-                cotacao.cotacoes().get(0).cotacaoVenda() == null) {
-
-            throw new RecursoNaoEncontradoException(
-                    "Cotação não disponível para a moeda " + moeda +
-                            " na data da transação"
-            );
-        }
-
-        BigDecimal taxa = cotacao.cotacoes().get(0).cotacaoVenda();
-
-        BigDecimal valorConvertido =
-                transacao.getValor().multiply(taxa);
-
-        CambioTransacaoDTO cambioDTO = new CambioTransacaoDTO(
-                moeda,
-                taxa,
-                valorConvertido
-        );
-
-        return new TransacaoResponseDTO(
-                transacao.getId(),
-                transacao.getDescricao(),
-                transacao.getValor(),
-                transacao.getDataHora(),
-                transacao.getTipo(),
-                transacao.getCategoria(),
-                transacao.getUsuario().getId(),
-                cambioDTO
-        );
-    }
-
-
 }
