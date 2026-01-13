@@ -1,8 +1,8 @@
-# Gestão Financeira – Backend API
+# 💰 Gestão Financeira – Backend API
 
-API REST desenvolvida em **Java 21 + Spring Boot** para gestão financeira básica, com controle de usuários, transações, transferências, análises financeiras e relatórios.
+API REST desenvolvida em **Java 21 + Spring Boot** para gestão financeira básica, com controle de usuários, transações, transferências, análises financeiras e geração de relatórios.
 
-O projeto foi desenvolvido como **POC (Prova de Conceito)**, priorizando clareza de regras de negócio, organização em camadas e fácil evolução.
+O projeto foi desenvolvido como **POC (Prova de Conceito)**, priorizando **clareza das regras de negócio**, **organização em camadas** e **facilidade de evolução**.
 
 ---
 
@@ -36,14 +36,16 @@ com.ntt.gestao.financeira
 └── Application # Classe principal
 
 
+A aplicação segue uma **arquitetura em camadas**, separando responsabilidades entre **API**, **regras de negócio** e **persistência**.
+
 ---
 
 ## 📌 Entidades Principais
 
 ### 👤 Usuario
-Representa o titular da conta.
+Representa o titular da conta bancária.
 
-Campos principais:
+**Campos principais:**
 - id
 - nome
 - cpf (único)
@@ -57,15 +59,15 @@ Campos principais:
 ### 💰 Transacao
 Representa qualquer movimentação financeira.
 
-Campos principais:
+**Campos principais:**
 - id
 - descricao
 - valor
 - dataHora
-- tipo (DEPOSITO, RETIRADA, TRANSFERENCIA)
-- categoria (ALIMENTACAO, LAZER, TRANSPORTE, MORADIA, SAUDE, OUTROS)
+- tipo (`DEPOSITO`, `RETIRADA`, `TRANSFERENCIA`)
+- categoria (`ALIMENTACAO`, `LAZER`, `TRANSPORTE`, `MORADIA`, `SAUDE`, `OUTROS`)
 - usuario
-- contaRelacionada (usada em transferências)
+- contaRelacionada (utilizada em transferências)
 
 ---
 
@@ -81,8 +83,8 @@ Campos principais:
 
 ### ✔️ Transferência
 - Gera duas transações:
-    - Débito (origem)
-    - Crédito (destino)
+    - Débito na conta de origem
+    - Crédito na conta de destino
 - Categoria automaticamente definida como `OUTROS`
 - Saldo da conta de origem é validado antes da operação
 
@@ -92,13 +94,13 @@ Campos principais:
 
 ### 👤 Usuários
 
-| Método | Endpoint        | Descrição                 |
-|------|----------------|---------------------------|
-| GET  | /usuarios       | Lista todos os usuários   |
-| POST | /usuarios       | Cria um novo usuário      |
-| GET  | /usuarios/{id}  | Busca usuário por ID      |
-| PUT  | /usuarios/{id}  | Atualiza usuário          |
-| DELETE | /usuarios/{id} | Remove usuário            |
+| Método | Endpoint | Descrição |
+|------|---------|----------|
+| GET | `/usuarios` | Lista todos os usuários |
+| POST | `/usuarios` | Cria um novo usuário |
+| GET | `/usuarios/{id}` | Busca usuário por ID |
+| PUT | `/usuarios/{id}` | Atualiza usuário |
+| DELETE | `/usuarios/{id}` | Remove usuário |
 
 ---
 
@@ -106,14 +108,14 @@ Campos principais:
 
 | Método | Endpoint |
 |------|---------|
-| POST | /transacoes |
-| POST | /transacoes/por-conta |
-| POST | /transacoes/transferir |
-| GET  | /transacoes |
-| GET  | /transacoes/{id} |
-| GET  | /transacoes/por-conta/{numeroConta} |
-| PUT  | /transacoes/{id} |
-| DELETE | /transacoes/{id} |
+| POST | `/transacoes` |
+| POST | `/transacoes/por-conta` |
+| POST | `/transacoes/transferir` |
+| GET | `/transacoes` |
+| GET | `/transacoes/{id}` |
+| GET | `/transacoes/por-conta/{numeroConta}` |
+| PUT | `/transacoes/{id}` |
+| DELETE | `/transacoes/{id}` |
 
 ---
 
@@ -121,8 +123,8 @@ Campos principais:
 
 | Método | Endpoint |
 |------|---------|
-| GET | /analise/resumo/{numeroConta} |
-| GET | /analise/despesas-por-categoria/{numeroConta} |
+| GET | `/analise/resumo/{numeroConta}` |
+| GET | `/analise/despesas-por-categoria/{numeroConta}` |
 
 ---
 
@@ -130,8 +132,8 @@ Campos principais:
 
 | Método | Endpoint |
 |------|---------|
-| GET | /relatorios/excel/{numeroConta} |
-| GET | /relatorios/pdf/{numeroConta} |
+| GET | `/relatorios/excel/{numeroConta}` |
+| GET | `/relatorios/pdf/{numeroConta}` |
 
 ---
 
@@ -139,50 +141,71 @@ Campos principais:
 
 Todas as exceções são centralizadas em `GlobalExceptionHandler`.
 
-Padrão de resposta de erro:
-```json
+**Formato padrão de resposta:**
+
 {
   "timestamp": "2026-01-12T19:40:23",
   "status": 404,
   "error": "Mensagem de erro"
 }
 
-🧪 Status do Projeto
+---
+
+## ▶️ Como Executar o Projeto
+Pré-requisitos
+Java 21
+Docker e Docker Compose
+
+Executando com Docker:
+docker-compose up -d
+
+A API ficará disponível em:
+http://localhost:8080
+
+Executando localmente (sem Docker)
+./mvnw spring-boot:run
+
+---
+
+## 📘 Documentação da API
+
+A documentação está disponível via Swagger UI, cobrindo os principais endpoints e contratos.
+
+http://localhost:8080/swagger-ui.html
+
+## 🧠 Decisões Técnicas
+
+BigDecimal foi utilizado para valores monetários, evitando erros de precisão.
+
+Transferências geram duas transações para manter histórico financeiro consistente.
+
+O saldo é calculado via consulta agregada no banco, evitando inconsistência de estado.
+
+Categoria é opcional para permitir modelagem adequada entre tipos de transação.
+
+## 🔐 Segurança
+
+A autenticação e autorização não foram implementadas nesta fase, pois o foco da POC foi modelagem de domínio e regras de negócio.
+
+A estrutura já está preparada para futura inclusão de:
+Spring Security
+JWT
+Criptografia de senha
+
+## 🧪 Status do Projeto
 
 ✔️ Backend funcional
 ✔️ Regras de negócio implementadas
 ✔️ Relatórios funcionando
-✔️ Estrutura pronta para evolução
+✔️ Documentação clara
+✔️ Base sólida para evolução
 
-🚫 Integração com câmbio foi descartada (mantido como backup conceitual)
+## 🚫 Integração com câmbio foi descartada nesta fase (mantida apenas como conceito)
 
-🚀 Próximos passos sugeridos
+## 🚀 Próximos Passos
 
-Autenticação (JWT)
-
+Implementar autenticação (JWT)
 Paginação e filtros
-
 Testes automatizados
-
 Frontend (Angular)
-
-Docker Compose (API + DB)
-
------------------------------------------
-
-✅ Situação atual
-
-✔️ Backend bem documentado
-✔️ Swagger completo
-✔️ README pronto para avaliação técnica
-✔️ Base sólida para continuar depois
-
-Se quiser, no próximo passo posso:
-
-Gerar testes
-
-Criar Docker Compose
-
-Preparar versão final para entrega
-
-Reintroduzir câmbio corretamente (se mudar de ideia)
+Evoluir Docker Compose (API + DB)
