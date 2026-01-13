@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -22,10 +23,14 @@ public class UsuarioService {
 
     private final UsuarioRepository repository;
     private final TransacaoRepository transacaoRepository;
+    private final PasswordEncoder passwordEncoder;
 
-    public UsuarioService(UsuarioRepository repository, TransacaoRepository transacaoRepository) {
+    public UsuarioService(UsuarioRepository repository,
+                          TransacaoRepository transacaoRepository,
+                          PasswordEncoder passwordEncoder) {
         this.repository = repository;
         this.transacaoRepository = transacaoRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     public UsuarioResponseDTO salvar(UsuarioRequestDTO dto) {
@@ -42,7 +47,7 @@ public class UsuarioService {
                 .cpf(dto.cpf())
                 .endereco(dto.endereco())
                 .email(dto.email())
-                .senha(dto.senha())
+                .senha(passwordEncoder.encode(dto.senha()))
                 .numeroConta(gerarNumeroConta())
                 .build();
 
@@ -67,7 +72,7 @@ public class UsuarioService {
         usuario.setNome(dto.nome());
         usuario.setEndereco(dto.endereco());
         usuario.setEmail(dto.email());
-        usuario.setSenha(dto.senha());
+        usuario.setSenha(passwordEncoder.encode(dto.senha()));
 
         return toDTO(repository.save(usuario));
     }
@@ -125,7 +130,7 @@ public class UsuarioService {
                             .cpf(cpf)
                             .endereco(endereco)
                             .email(email)
-                            .senha(senha)
+                            .senha(passwordEncoder.encode(senha))
                             .numeroConta(gerarNumeroConta())
                             .build();
 
