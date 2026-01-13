@@ -1,11 +1,12 @@
 package com.ntt.gestao.financeira.controller;
 
 import com.ntt.gestao.financeira.dto.response.DespesaPorCategoriaDTO;
-import com.ntt.gestao.financeira.dto.response.ResumoFinanceiroDTO;
 import com.ntt.gestao.financeira.service.AnaliseFinanceiraService;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/analise")
@@ -17,15 +18,13 @@ public class AnaliseFinanceiraController {
         this.service = service;
     }
 
-    @GetMapping("/{numeroConta}/resumo")
-    public ResumoFinanceiroDTO resumo(@PathVariable String numeroConta) {
-        return service.resumoPorConta(numeroConta);
+    @GetMapping("/resumo")
+    public Map<String, BigDecimal> resumo() {
+        return service.resumoFinanceiro();
     }
 
-    @GetMapping("/{numeroConta}/despesas-por-categoria")
-    public List<DespesaPorCategoriaDTO> despesasPorCategoria(
-            @PathVariable String numeroConta
-    ) {
-        return service.despesasPorCategoria(numeroConta);
+    @GetMapping("/despesas-por-categoria")
+    public List<DespesaPorCategoriaDTO> despesasPorCategoria() {
+        return service.despesasPorCategoria();
     }
 }
