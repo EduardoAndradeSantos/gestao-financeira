@@ -1,6 +1,5 @@
 package com.ntt.gestao.financeira.service;
 
-import com.ntt.gestao.financeira.dto.request.TransacaoPorContaRequestDTO;
 import com.ntt.gestao.financeira.dto.request.TransacaoRequestDTO;
 import com.ntt.gestao.financeira.dto.request.TransacaoTransferenciaDTO;
 import com.ntt.gestao.financeira.dto.response.TransacaoResponseDTO;
@@ -12,6 +11,7 @@ import com.ntt.gestao.financeira.exception.ConflitoDeDadosException;
 import com.ntt.gestao.financeira.exception.RecursoNaoEncontradoException;
 import com.ntt.gestao.financeira.repository.TransacaoRepository;
 import com.ntt.gestao.financeira.repository.UsuarioRepository;
+import com.ntt.gestao.financeira.security.SecurityUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,13 +34,24 @@ public class TransacaoService {
     }
 
     /* ==========================================================
-       ================= TRANSAÇÃO POR CONTA ====================
+       ====================== UTIL ==============================
        ========================================================== */
 
-    public TransacaoResponseDTO salvarPorConta(TransacaoPorContaRequestDTO dto) {
+    private Usuario getUsuarioLogado() {
+        String email = SecurityUtils.getEmailUsuarioLogado();
 
-        Usuario usuario = usuarioRepository.findByNumeroConta(dto.numeroConta())
-                .orElseThrow(() -> new RecursoNaoEncontradoException("Conta não encontrada!"));
+        return usuarioRepository.findByEmail(email)
+                .orElseThrow(() ->
+                        new RecursoNaoEncontradoException("Usuário logado não encontrado"));
+    }
+
+    /* ==========================================================
+       ===================== CRIAR ==============================
+       ========================================================== */
+
+    public TransacaoResponseDTO salvar(TransacaoRequestDTO dto) {
+
+        Usuario usuario = getUsuarioLogado();
 
         CategoriaTransacao categoria = dto.categoria();
 
@@ -57,7 +68,9 @@ public class TransacaoService {
         }
 
         if (dto.tipo() == TipoTransacao.TRANSFERENCIA) {
-            categoria = CategoriaTransacao.OUTROS;
+            throw new ConflitoDeDadosException(
+                    "Transferência deve usar endpoint específico"
+            );
         }
 
         Transacao transacao = Transacao.builder()
@@ -73,69 +86,93 @@ public class TransacaoService {
     }
 
     /* ==========================================================
-       ================= CRUD PADRÃO ============================
+       ===================== LISTAR =============================
        ========================================================== */
 
-    public List<TransacaoResponseDTO> listar() {
-        return repository.findAll()
-                .stream()
+    public List<TransacaoResponseDTO> listarDoUsuarioLogado() {
+
+        Usuario usuario = getUsuarioLogado();
+
+        List<Transacao> transacoes =
+                repository.findByUsuarioIdOrderByDataHoraDesc(usuario.getId());
+
+        if (transacoes.isEmpty()) {
+            throw new RecursoNaoEncontradoException(
+                    "Nenhuma transação encontrada para o usuário logado"
+            );
+        }
+
+        return transacoes.stream()
                 .map(this::toDTO)
                 .toList();
     }
 
-    public TransacaoResponseDTO buscar(Long id) {
+    public TransacaoResponseDTO buscarPorId(Long id) {
+
+        Usuario usuario = getUsuarioLogado();
+
         Transacao transacao = repository.findById(id)
-                .orElseThrow(() -> new RecursoNaoEncontradoException("Transação não encontrada!"));
+                .orElseThrow(() ->
+                        new RecursoNaoEncontradoException("Transação não encontrada"));
+
+        if (!transacao.getUsuario().getId().equals(usuario.getId())) {
+            throw new ConflitoDeDadosException(
+                    "Acesso negado à transação de outro usuário"
+            );
+        }
+
         return toDTO(transacao);
     }
 
-    public TransacaoResponseDTO atualizar(Long id, TransacaoRequestDTO dto) {
-
-        Transacao transacao = repository.findById(id)
-                .orElseThrow(() -> new RecursoNaoEncontradoException("Transação não encontrada!"));
-
-        Usuario usuario = usuarioRepository.findById(dto.usuarioId())
-                .orElseThrow(() -> new RecursoNaoEncontradoException("Usuário não encontrado!"));
-
-        // ❗ Data/hora NÃO é alterada
-        transacao.setDescricao(dto.descricao());
-        transacao.setValor(dto.valor());
-        transacao.setTipo(dto.tipo());
-        transacao.setCategoria(dto.categoria());
-        transacao.setUsuario(usuario);
-
-        return toDTO(repository.save(transacao));
-    }
+    /* ==========================================================
+       ===================== EXCLUIR ============================
+       ========================================================== */
 
     public void deletar(Long id) {
-        repository.deleteById(id);
+
+        Usuario usuario = getUsuarioLogado();
+
+        Transacao transacao = repository.findById(id)
+                .orElseThrow(() ->
+                        new RecursoNaoEncontradoException("Transação não encontrada"));
+
+        if (!transacao.getUsuario().getId().equals(usuario.getId())) {
+            throw new ConflitoDeDadosException(
+                    "Acesso negado à transação de outro usuário"
+            );
+        }
+
+        repository.delete(transacao);
     }
 
     /* ==========================================================
-       ===================== TRANSFERÊNCIA ======================
+       ==================== TRANSFERÊNCIA =======================
        ========================================================== */
 
     @Transactional
     public void transferir(TransacaoTransferenciaDTO dto) {
 
-        Usuario origem = usuarioRepository.findByNumeroConta(dto.contaOrigem())
-                .orElseThrow(() -> new RecursoNaoEncontradoException("Conta de origem não encontrada"));
+        Usuario origem = getUsuarioLogado();
 
         Usuario destino = usuarioRepository.findByNumeroConta(dto.contaDestino())
-                .orElseThrow(() -> new RecursoNaoEncontradoException("Conta de destino não encontrada"));
+                .orElseThrow(() ->
+                        new RecursoNaoEncontradoException("Conta de destino não encontrada"));
 
         if (origem.getId().equals(destino.getId())) {
-            throw new ConflitoDeDadosException("Não é possível transferir para a mesma conta!");
+            throw new ConflitoDeDadosException(
+                    "Não é possível transferir para a própria conta"
+            );
         }
 
         BigDecimal saldoOrigem = repository.calcularSaldoUsuario(origem.getId());
+
         if (saldoOrigem.compareTo(dto.valor()) < 0) {
-            throw new ConflitoDeDadosException("Saldo insuficiente!");
+            throw new ConflitoDeDadosException("Saldo insuficiente");
         }
 
         LocalDateTime agora = LocalDateTime.now();
 
-        // DÉBITO (origem)
+        // DÉBITO
         Transacao debito = Transacao.builder()
                 .descricao(dto.descricao())
                 .valor(dto.valor())
@@ -146,7 +183,7 @@ public class TransacaoService {
                 .contaRelacionada(destino)
                 .build();
 
-        // CRÉDITO (destino)
+        // CRÉDITO
         Transacao credito = Transacao.builder()
                 .descricao(dto.descricao())
                 .valor(dto.valor())
@@ -162,7 +199,7 @@ public class TransacaoService {
     }
 
     /* ==========================================================
-       ====================== MAPEAMENTO ========================
+       ===================== MAPEAMENTO =========================
        ========================================================== */
 
     private TransacaoResponseDTO toDTO(Transacao transacao) {
@@ -175,21 +212,5 @@ public class TransacaoService {
                 transacao.getCategoria(),
                 transacao.getUsuario().getId()
         );
-    }
-
-    public List<TransacaoResponseDTO> listarPorConta(String numeroConta) {
-
-        List<Transacao> transacoes =
-                repository.findByUsuarioNumeroContaOrderByDataHoraDesc(numeroConta);
-
-        if (transacoes.isEmpty()) {
-            throw new RecursoNaoEncontradoException(
-                    "Nenhuma transação encontrada para a conta " + numeroConta
-            );
-        }
-
-        return transacoes.stream()
-                .map(this::toDTO)
-                .toList();
     }
 }

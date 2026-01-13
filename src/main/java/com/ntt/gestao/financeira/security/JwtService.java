@@ -1,6 +1,8 @@
 package com.ntt.gestao.financeira.security;
 
 import com.ntt.gestao.financeira.entity.Usuario;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
@@ -30,4 +32,33 @@ public class JwtService {
                 .signWith(getSigningKey(), SignatureAlgorithm.HS256)
                 .compact();
     }
+
+    public boolean isTokenValido(String token) {
+        try {
+            parseToken(token);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    public Long getUsuarioId(String token) {
+        return parseToken(token)
+                .getBody()
+                .get("usuarioId", Long.class);
+    }
+
+    public String getEmail(String token) {
+        return parseToken(token)
+                .getBody()
+                .getSubject();
+    }
+
+    private Jws<Claims> parseToken(String token) {
+        return Jwts.parserBuilder()
+                .setSigningKey(getSigningKey())
+                .build()
+                .parseClaimsJws(token);
+    }
+
 }

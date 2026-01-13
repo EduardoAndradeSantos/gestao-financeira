@@ -1,13 +1,11 @@
 package com.ntt.gestao.financeira.controller;
 
-import com.ntt.gestao.financeira.dto.request.TransacaoPorContaRequestDTO;
 import com.ntt.gestao.financeira.dto.request.TransacaoRequestDTO;
 import com.ntt.gestao.financeira.dto.request.TransacaoTransferenciaDTO;
 import com.ntt.gestao.financeira.dto.response.TransacaoResponseDTO;
 import com.ntt.gestao.financeira.service.TransacaoService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -22,21 +20,39 @@ public class TransacaoController {
         this.service = service;
     }
 
-    @GetMapping
-    public List<TransacaoResponseDTO> listar() {
-        return service.listar();
+    /* ==========================================================
+       ===================== CRIAR ==============================
+       ========================================================== */
+
+    @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)
+    public TransacaoResponseDTO criar(
+            @Valid @RequestBody TransacaoRequestDTO dto
+    ) {
+        return service.salvar(dto);
     }
+
+    /* ==========================================================
+       ===================== LISTAR =============================
+       ========================================================== */
+
+    @GetMapping
+    public List<TransacaoResponseDTO> listarDoUsuarioLogado() {
+        return service.listarDoUsuarioLogado();
+    }
+
+    /* ==========================================================
+       ===================== BUSCAR =============================
+       ========================================================== */
 
     @GetMapping("/{id}")
-    public TransacaoResponseDTO buscar(@PathVariable Long id) {
-        return service.buscar(id);
+    public TransacaoResponseDTO buscarPorId(@PathVariable Long id) {
+        return service.buscarPorId(id);
     }
 
-    @PutMapping("/{id}")
-    public TransacaoResponseDTO atualizar(@PathVariable Long id,
-                                          @Valid @RequestBody TransacaoRequestDTO dto) {
-        return service.atualizar(id, dto);
-    }
+    /* ==========================================================
+       ===================== EXCLUIR ============================
+       ========================================================== */
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
@@ -44,27 +60,15 @@ public class TransacaoController {
         service.deletar(id);
     }
 
+    /* ==========================================================
+       ==================== TRANSFERÊNCIA =======================
+       ========================================================== */
+
     @PostMapping("/transferencia")
     @ResponseStatus(HttpStatus.OK)
-    public void transferir(@Valid @RequestBody TransacaoTransferenciaDTO dto) {
+    public void transferir(
+            @Valid @RequestBody TransacaoTransferenciaDTO dto
+    ) {
         service.transferir(dto);
     }
-
-    @PostMapping("/por-conta")
-    public TransacaoResponseDTO criarPorConta(
-            @RequestBody TransacaoPorContaRequestDTO dto
-    ) {
-        return service.salvarPorConta(dto);
-    }
-
-    @GetMapping("/por-conta/{numeroConta}")
-    public ResponseEntity<List<TransacaoResponseDTO>> listarPorConta(
-            @PathVariable String numeroConta
-    ) {
-        return ResponseEntity.ok(
-                service.listarPorConta(numeroConta)
-        );
-    }
-
-
 }
