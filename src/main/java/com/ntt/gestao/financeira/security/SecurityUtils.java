@@ -5,8 +5,20 @@ import org.springframework.security.core.context.SecurityContextHolder;
 
 public class SecurityUtils {
 
-    public static String getEmailUsuarioLogado() {
+    public static UserPrincipal getPrincipal() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        return auth.getName();
+        return (UserPrincipal) auth.getPrincipal();
+    }
+
+    public static Long getUsuarioId() {
+        return getPrincipal().getUsuarioId();
+    }
+
+    public static String getNumeroConta() {
+        return getPrincipal().getNumeroConta();
+    }
+
+    public static String getEmail() {
+        return getPrincipal().getUsername();
     }
 }

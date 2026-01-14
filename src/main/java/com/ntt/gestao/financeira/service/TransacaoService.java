@@ -38,9 +38,9 @@ public class TransacaoService {
        ========================================================== */
 
     private Usuario getUsuarioLogado() {
-        String email = SecurityUtils.getEmailUsuarioLogado();
+        Long usuarioId = SecurityUtils.getUsuarioId();
 
-        return usuarioRepository.findByEmail(email)
+        return usuarioRepository.findById(usuarioId)
                 .orElseThrow(() ->
                         new RecursoNaoEncontradoException("Usuário logado não encontrado"));
     }
@@ -91,10 +91,10 @@ public class TransacaoService {
 
     public List<TransacaoResponseDTO> listarDoUsuarioLogado() {
 
-        Usuario usuario = getUsuarioLogado();
+        Long usuarioId = SecurityUtils.getUsuarioId();
 
         List<Transacao> transacoes =
-                repository.findByUsuarioIdOrderByDataHoraDesc(usuario.getId());
+                repository.findByUsuarioIdOrderByDataHoraDesc(usuarioId);
 
         if (transacoes.isEmpty()) {
             throw new RecursoNaoEncontradoException(
@@ -109,13 +109,13 @@ public class TransacaoService {
 
     public TransacaoResponseDTO buscarPorId(Long id) {
 
-        Usuario usuario = getUsuarioLogado();
+        Long usuarioId = SecurityUtils.getUsuarioId();
 
         Transacao transacao = repository.findById(id)
                 .orElseThrow(() ->
                         new RecursoNaoEncontradoException("Transação não encontrada"));
 
-        if (!transacao.getUsuario().getId().equals(usuario.getId())) {
+        if (!transacao.getUsuario().getId().equals(usuarioId)) {
             throw new ConflitoDeDadosException(
                     "Acesso negado à transação de outro usuário"
             );
@@ -130,13 +130,13 @@ public class TransacaoService {
 
     public void deletar(Long id) {
 
-        Usuario usuario = getUsuarioLogado();
+        Long usuarioId = SecurityUtils.getUsuarioId();
 
         Transacao transacao = repository.findById(id)
                 .orElseThrow(() ->
                         new RecursoNaoEncontradoException("Transação não encontrada"));
 
-        if (!transacao.getUsuario().getId().equals(usuario.getId())) {
+        if (!transacao.getUsuario().getId().equals(usuarioId)) {
             throw new ConflitoDeDadosException(
                     "Acesso negado à transação de outro usuário"
             );
@@ -152,7 +152,11 @@ public class TransacaoService {
     @Transactional
     public void transferir(TransacaoTransferenciaDTO dto) {
 
-        Usuario origem = getUsuarioLogado();
+        Long usuarioId = SecurityUtils.getUsuarioId();
+
+        Usuario origem = usuarioRepository.findById(usuarioId)
+                .orElseThrow(() ->
+                        new RecursoNaoEncontradoException("Usuário de origem não encontrado"));
 
         Usuario destino = usuarioRepository.findByNumeroConta(dto.contaDestino())
                 .orElseThrow(() ->
@@ -172,7 +176,6 @@ public class TransacaoService {
 
         LocalDateTime agora = LocalDateTime.now();
 
-        // DÉBITO
         Transacao debito = Transacao.builder()
                 .descricao(dto.descricao())
                 .valor(dto.valor())
@@ -183,7 +186,6 @@ public class TransacaoService {
                 .contaRelacionada(destino)
                 .build();
 
-        // CRÉDITO
         Transacao credito = Transacao.builder()
                 .descricao(dto.descricao())
                 .valor(dto.valor())

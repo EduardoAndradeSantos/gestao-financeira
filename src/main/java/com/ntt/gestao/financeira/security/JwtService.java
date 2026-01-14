@@ -61,4 +61,8 @@ public class JwtService {
                 .parseClaimsJws(token);
     }
 
+    public String getNumeroConta(String token) {
+        return parseToken(token).getBody().get("numeroConta", String.class);
+    }
+
 }

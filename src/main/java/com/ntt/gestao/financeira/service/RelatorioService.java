@@ -48,8 +48,9 @@ public class RelatorioService {
        ========================================================== */
 
     private Usuario getUsuarioLogado() {
-        String email = SecurityUtils.getEmailUsuarioLogado();
-        return usuarioRepository.findByEmail(email)
+        Long usuarioId = SecurityUtils.getUsuarioId();
+
+        return usuarioRepository.findById(usuarioId)
                 .orElseThrow(() ->
                         new RecursoNaoEncontradoException("Usuário logado não encontrado"));
     }

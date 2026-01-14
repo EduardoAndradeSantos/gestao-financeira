@@ -27,16 +27,16 @@ public class AnaliseFinanceiraService {
     }
 
     private Usuario getUsuarioLogado() {
-        String email = SecurityUtils.getEmailUsuarioLogado();
-        return usuarioRepository.findByEmail(email)
+        Long usuarioId = SecurityUtils.getUsuarioId();
+
+        return usuarioRepository.findById(usuarioId)
                 .orElseThrow(() ->
                         new RecursoNaoEncontradoException("Usuário logado não encontrado"));
     }
 
     public Map<String, BigDecimal> resumoFinanceiro() {
 
-        Usuario usuario = getUsuarioLogado();
-        Long usuarioId = usuario.getId();
+        Long usuarioId = SecurityUtils.getUsuarioId();
 
         BigDecimal saldo = transacaoRepository.calcularSaldoUsuario(usuarioId);
         BigDecimal receitas = transacaoRepository.totalReceitas(usuarioId);
@@ -51,7 +51,7 @@ public class AnaliseFinanceiraService {
 
     public List<DespesaPorCategoriaDTO> despesasPorCategoria() {
 
-        Usuario usuario = getUsuarioLogado();
-        return transacaoRepository.totalDespesasPorCategoria(usuario.getId());
+        Long usuarioId = SecurityUtils.getUsuarioId();
+        return transacaoRepository.totalDespesasPorCategoria(usuarioId);
     }
 }
