@@ -27,6 +27,7 @@ public class JwtService {
                 .setSubject(usuario.getEmail())
                 .claim("usuarioId", usuario.getId())
                 .claim("numeroConta", usuario.getNumeroConta())
+                .claim("role", usuario.getRole().name()) // 👈 AQUI
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + EXPIRACAO))
                 .signWith(getSigningKey(), SignatureAlgorithm.HS256)
@@ -43,15 +44,27 @@ public class JwtService {
     }
 
     public Long getUsuarioId(String token) {
-        return parseToken(token).getBody().get("usuarioId", Long.class);
+        return parseToken(token)
+                .getBody()
+                .get("usuarioId", Long.class);
     }
 
     public String getEmail(String token) {
-        return parseToken(token).getBody().getSubject();
+        return parseToken(token)
+                .getBody()
+                .getSubject();
     }
 
     public String getNumeroConta(String token) {
-        return parseToken(token).getBody().get("numeroConta", String.class);
+        return parseToken(token)
+                .getBody()
+                .get("numeroConta", String.class);
+    }
+
+    public String getRole(String token) {
+        return parseToken(token)
+                .getBody()
+                .get("role", String.class);
     }
 
     private Jws<Claims> parseToken(String token) {

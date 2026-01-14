@@ -1,5 +1,6 @@
 package com.ntt.gestao.financeira.security;
 
+import com.ntt.gestao.financeira.entity.RoleUsuario;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -46,8 +47,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String email = jwtService.getEmail(token);
         String numeroConta = jwtService.getNumeroConta(token);
 
-        UserPrincipal principal =
-                new UserPrincipal(usuarioId, email, numeroConta);
+        // ROLE vindo do JWT (String → Enum)
+        String roleStr = jwtService.getRole(token);
+        RoleUsuario role = RoleUsuario.valueOf(roleStr);
+
+        UserPrincipal principal = new UserPrincipal(
+                usuarioId,
+                email,
+                numeroConta,
+                role
+        );
 
         UsernamePasswordAuthenticationToken authentication =
                 new UsernamePasswordAuthenticationToken(

@@ -3,6 +3,7 @@ package com.ntt.gestao.financeira.service;
 import com.ntt.gestao.financeira.dto.request.UsuarioUpdateRequestDTO;
 import com.ntt.gestao.financeira.dto.response.ImportacaoUsuarioResultadoDTO;
 import com.ntt.gestao.financeira.dto.response.UsuarioResponseDTO;
+import com.ntt.gestao.financeira.entity.RoleUsuario;
 import com.ntt.gestao.financeira.entity.Usuario;
 import com.ntt.gestao.financeira.exception.ConflitoDeDadosException;
 import com.ntt.gestao.financeira.exception.RecursoNaoEncontradoException;
@@ -14,7 +15,6 @@ import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
@@ -96,7 +96,6 @@ public class UsuarioService {
         );
     }
 
-    @Transactional
     public ImportacaoUsuarioResultadoDTO importarUsuariosViaExcel(MultipartFile file) {
 
         if (file.isEmpty()) {
@@ -129,6 +128,7 @@ public class UsuarioService {
                                     getCellAsString(row, 4)
                             ))
                             .numeroConta(gerarNumeroConta())
+                            .role(RoleUsuario.USER)
                             .build();
 
                     usuariosSalvos.add(repository.save(usuario));
