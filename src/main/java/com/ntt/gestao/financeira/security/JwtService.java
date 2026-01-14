@@ -43,15 +43,15 @@ public class JwtService {
     }
 
     public Long getUsuarioId(String token) {
-        return parseToken(token)
-                .getBody()
-                .get("usuarioId", Long.class);
+        return parseToken(token).getBody().get("usuarioId", Long.class);
     }
 
     public String getEmail(String token) {
-        return parseToken(token)
-                .getBody()
-                .getSubject();
+        return parseToken(token).getBody().getSubject();
+    }
+
+    public String getNumeroConta(String token) {
+        return parseToken(token).getBody().get("numeroConta", String.class);
     }
 
     private Jws<Claims> parseToken(String token) {
@@ -60,9 +60,4 @@ public class JwtService {
                 .build()
                 .parseClaimsJws(token);
     }
-
-    public String getNumeroConta(String token) {
-        return parseToken(token).getBody().get("numeroConta", String.class);
-    }
-
 }
