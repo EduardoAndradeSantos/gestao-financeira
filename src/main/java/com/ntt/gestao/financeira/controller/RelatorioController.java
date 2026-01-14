@@ -16,34 +16,25 @@ public class RelatorioController {
         this.service = service;
     }
 
-    @GetMapping("/{numeroConta}/excel")
-    public ResponseEntity<byte[]> baixarExcel(@PathVariable String numeroConta) {
+    @GetMapping("/pdf")
+    public ResponseEntity<byte[]> gerarPdf() {
 
-        byte[] arquivo = service.gerarRelatorioExcel(numeroConta);
-
-        return ResponseEntity.ok()
-                .header(
-                        HttpHeaders.CONTENT_DISPOSITION,
-                        "attachment; filename=relatorio-financeiro.xlsx"
-                )
-                .contentType(
-                        MediaType.APPLICATION_OCTET_STREAM
-                )
-                .body(arquivo);
-    }
-
-    @GetMapping("/{numeroConta}/pdf")
-    public ResponseEntity<byte[]> baixarPdf(@PathVariable String numeroConta) {
-
-        byte[] arquivo = service.gerarRelatorioPdf(numeroConta);
+        byte[] pdf = service.gerarPdfUsuarioLogado();
 
         return ResponseEntity.ok()
-                .header(
-                        HttpHeaders.CONTENT_DISPOSITION,
-                        "attachment; filename=relatorio-financeiro.pdf"
-                )
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=relatorio.pdf")
                 .contentType(MediaType.APPLICATION_PDF)
-                .body(arquivo);
+                .body(pdf);
     }
 
+    @GetMapping("/excel")
+    public ResponseEntity<byte[]> gerarExcel() {
+
+        byte[] excel = service.gerarExcelUsuarioLogado();
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=relatorio.xlsx")
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .body(excel);
+    }
 }

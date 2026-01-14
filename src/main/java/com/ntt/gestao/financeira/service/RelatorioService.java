@@ -11,7 +11,9 @@ import com.ntt.gestao.financeira.entity.Usuario;
 import com.ntt.gestao.financeira.exception.RecursoNaoEncontradoException;
 import com.ntt.gestao.financeira.repository.TransacaoRepository;
 import com.ntt.gestao.financeira.repository.UsuarioRepository;
+import com.ntt.gestao.financeira.security.SecurityUtils;
 import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.stereotype.Service;
@@ -42,10 +44,39 @@ public class RelatorioService {
     }
 
     /* ==========================================================
+       ===================== JWT CONTEXT ========================
+       ========================================================== */
+
+    private Usuario getUsuarioLogado() {
+        String email = SecurityUtils.getEmailUsuarioLogado();
+        return usuarioRepository.findByEmail(email)
+                .orElseThrow(() ->
+                        new RecursoNaoEncontradoException("Usuário logado não encontrado"));
+    }
+
+    /* ==========================================================
+       ===================== EXCEL (JWT) ========================
+       ========================================================== */
+
+    public byte[] gerarExcelUsuarioLogado() {
+        Usuario usuario = getUsuarioLogado();
+        return gerarRelatorioExcel(usuario.getNumeroConta());
+    }
+
+    /* ==========================================================
+       ====================== PDF (JWT) =========================
+       ========================================================== */
+
+    public byte[] gerarPdfUsuarioLogado() {
+        Usuario usuario = getUsuarioLogado();
+        return gerarRelatorioPdf(usuario.getNumeroConta());
+    }
+
+    /* ==========================================================
        ===================== RELATÓRIO EXCEL ====================
        ========================================================== */
 
-    public byte[] gerarRelatorioExcel(String numeroConta) {
+    private byte[] gerarRelatorioExcel(String numeroConta) {
 
         Usuario usuario = usuarioRepository.findByNumeroConta(numeroConta)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Conta não encontrada"));
@@ -74,7 +105,6 @@ public class RelatorioService {
 
             Sheet sheet = workbook.createSheet("Relatório Financeiro");
 
-            // ===== Estilos =====
             org.apache.poi.ss.usermodel.Font boldFont = workbook.createFont();
             boldFont.setBold(true);
 
@@ -88,7 +118,6 @@ public class RelatorioService {
 
             int rowIdx = 0;
 
-            // ===== Dados da conta =====
             Row contaRow = sheet.createRow(rowIdx++);
             contaRow.createCell(0).setCellValue("Conta:");
             contaRow.getCell(0).setCellStyle(boldStyle);
@@ -101,7 +130,6 @@ public class RelatorioService {
 
             rowIdx++;
 
-            // ===== Totais =====
             Row receitasRow = sheet.createRow(rowIdx++);
             receitasRow.createCell(0).setCellValue("Total Receitas");
             receitasRow.getCell(0).setCellStyle(boldStyle);
@@ -119,27 +147,25 @@ public class RelatorioService {
 
             rowIdx++;
 
-            // ===== Cabeçalho tabela =====
             Row tableHeader = sheet.createRow(rowIdx++);
-            tableHeader.createCell(0).setCellValue("Data/Hora");
-            tableHeader.createCell(1).setCellValue("Descrição");
-            tableHeader.createCell(2).setCellValue("Tipo");
-            tableHeader.createCell(3).setCellValue("Categoria");
-            tableHeader.createCell(4).setCellValue("Conta Relacionada");
-            tableHeader.createCell(5).setCellValue("Valor");
+            String[] headers = {
+                    "Data/Hora", "Descrição", "Tipo",
+                    "Categoria", "Conta Relacionada", "Valor"
+            };
 
-            for (int i = 0; i <= 5; i++) {
-                tableHeader.getCell(i).setCellStyle(headerStyle);
+            for (int i = 0; i < headers.length; i++) {
+                Cell cell = tableHeader.createCell(i);
+                cell.setCellValue(headers[i]);
+                cell.setCellStyle(headerStyle);
             }
 
-            // ===== Linhas =====
             for (Transacao t : transacoes) {
+
                 Row row = sheet.createRow(rowIdx++);
 
-                String contaRel = "-";
-                if (t.getContaRelacionada() != null) {
-                    contaRel = t.getContaRelacionada().getNumeroConta();
-                }
+                String contaRel = t.getContaRelacionada() != null
+                        ? t.getContaRelacionada().getNumeroConta()
+                        : "-";
 
                 row.createCell(0).setCellValue(
                         t.getDataHora().format(DATA_HORA_FORMATTER)
@@ -147,17 +173,16 @@ public class RelatorioService {
                 row.createCell(1).setCellValue(t.getDescricao());
                 row.createCell(2).setCellValue(t.getTipo().name());
 
-                String categoria = "-";
-                if (t.getTipo() == TipoTransacao.RETIRADA) {
-                    categoria = t.getCategoria().name();
-                }
-                row.createCell(3).setCellValue(categoria);
+                String categoria = t.getTipo() == TipoTransacao.RETIRADA
+                        ? t.getCategoria().name()
+                        : "-";
 
-                row.createCell(4).setCellValue(contaRel); // 👈 AQUI
+                row.createCell(3).setCellValue(categoria);
+                row.createCell(4).setCellValue(contaRel);
                 row.createCell(5).setCellValue(moeda.format(t.getValor()));
             }
 
-            for (int i = 0; i <= 5; i++) {
+            for (int i = 0; i < headers.length; i++) {
                 sheet.autoSizeColumn(i);
             }
 
@@ -174,7 +199,7 @@ public class RelatorioService {
        ===================== RELATÓRIO PDF ======================
        ========================================================== */
 
-    public byte[] gerarRelatorioPdf(String numeroConta) {
+    private byte[] gerarRelatorioPdf(String numeroConta) {
 
         Usuario usuario = usuarioRepository.findByNumeroConta(numeroConta)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Conta não encontrada"));
@@ -240,24 +265,22 @@ public class RelatorioService {
 
             for (Transacao t : transacoes) {
 
-                String contaRel = "-";
-                if (t.getContaRelacionada() != null) {
-                    contaRel = t.getContaRelacionada().getNumeroConta();
-                }
+                String contaRel = t.getContaRelacionada() != null
+                        ? t.getContaRelacionada().getNumeroConta()
+                        : "-";
 
-                table.addCell(new PdfPCell(
-                        new Phrase(t.getDataHora().format(DATA_HORA_FORMATTER), cellFont)
+                table.addCell(new Phrase(
+                        t.getDataHora().format(DATA_HORA_FORMATTER), cellFont
                 ));
-                table.addCell(new PdfPCell(new Phrase(t.getDescricao(), cellFont)));
-                table.addCell(new PdfPCell(new Phrase(t.getTipo().name(), cellFont)));
+                table.addCell(new Phrase(t.getDescricao(), cellFont));
+                table.addCell(new Phrase(t.getTipo().name(), cellFont));
 
-                String categoria = "-";
-                if (t.getTipo() == TipoTransacao.RETIRADA) {
-                    categoria = t.getCategoria().name();
-                }
-                table.addCell(new PdfPCell(new Phrase(categoria, cellFont)));
+                String categoria = t.getTipo() == TipoTransacao.RETIRADA
+                        ? t.getCategoria().name()
+                        : "-";
 
-                table.addCell(new PdfPCell(new Phrase(contaRel, cellFont))); // 👈 AQUI
+                table.addCell(new Phrase(categoria, cellFont));
+                table.addCell(new Phrase(contaRel, cellFont));
 
                 PdfPCell valorCell = new PdfPCell(
                         new Phrase(moeda.format(t.getValor()), cellFont)
