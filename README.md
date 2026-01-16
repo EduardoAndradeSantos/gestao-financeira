@@ -1,211 +1,264 @@
 # 💰 Gestão Financeira – Backend API
 
-API REST desenvolvida em **Java 21 + Spring Boot** para gestão financeira básica, com controle de usuários, transações, transferências, análises financeiras e geração de relatórios.
+API REST desenvolvida em **Java 21 + Spring Boot** para simular um sistema de gestão financeira bancária, com foco em **arquitetura limpa**, **boas práticas** e **integração com serviços externos**.
 
-O projeto foi desenvolvido como **POC (Prova de Conceito)**, priorizando **clareza das regras de negócio**, **organização em camadas** e **facilidade de evolução**.
-
----
-
-## 🛠️ Tecnologias Utilizadas
-
-- Java 21
-- Spring Boot
-- Spring Web
-- Spring Data JPA
-- Hibernate
-- PostgreSQL
-- Bean Validation (Jakarta Validation)
-- Lombok
-- OpenAPI / Swagger
-- Apache POI (Excel)
-- OpenPDF (PDF)
+O projeto foi construído como **prova técnica / POC**, priorizando clareza de domínio, desacoplamento e facilidade de evolução.
 
 ---
 
-## 🗂️ Arquitetura do Projeto
+## 📌 Objetivo
 
-com.ntt.gestao.financeira
-├── controller # Endpoints REST
-├── dto
-│ ├── request # DTOs de entrada
-│ └── response # DTOs de saída
-├── entity # Entidades JPA
-├── exception # Exceções e handler global
-├── repository # Repositórios JPA
-├── service # Regras de negócio
-└── Application # Classe principal
+Permitir que usuários:
 
+* Gerenciem seu perfil
+* Realizem transações financeiras (depósitos e transferências)
+* Consultem análises financeiras
+* Gerem relatórios em PDF e Excel
 
-A aplicação segue uma **arquitetura em camadas**, separando responsabilidades entre **API**, **regras de negócio** e **persistência**.
+Além disso, o projeto demonstra:
 
----
-
-## 📌 Entidades Principais
-
-### 👤 Usuario
-Representa o titular da conta bancária.
-
-**Campos principais:**
-- id
-- nome
-- cpf (único)
-- email (único)
-- endereco
-- senha
-- numeroConta (único)
+* Autenticação e autorização com JWT
+* Integração com API externa (mock de saldo)
+* Uso de Docker para padronização de ambiente
+* Testes unitários focados em regras de negócio
 
 ---
 
-### 💰 Transacao
-Representa qualquer movimentação financeira.
+## 🛠️ Stack e Tecnologias
 
-**Campos principais:**
-- id
-- descricao
-- valor
-- dataHora
-- tipo (`DEPOSITO`, `RETIRADA`, `TRANSFERENCIA`)
-- categoria (`ALIMENTACAO`, `LAZER`, `TRANSPORTE`, `MORADIA`, `SAUDE`, `OUTROS`)
-- usuario
-- contaRelacionada (utilizada em transferências)
-
----
-
-## 🔁 Regras de Negócio Importantes
-
-### ✔️ Depósito
-- Não possui categoria
-- Sempre soma ao saldo
-
-### ✔️ Retirada
-- Categoria é obrigatória
-- Subtrai do saldo
-
-### ✔️ Transferência
-- Gera duas transações:
-    - Débito na conta de origem
-    - Crédito na conta de destino
-- Categoria automaticamente definida como `OUTROS`
-- Saldo da conta de origem é validado antes da operação
+* Java 21
+* Spring Boot
+* Spring Web
+* Spring Data JPA
+* Spring Security (JWT stateless)
+* PostgreSQL
+* Docker / Docker Compose
+* OpenAPI / Swagger
+* Apache POI (Excel)
+* OpenPDF (PDF)
+* JUnit 5 + Mockito
 
 ---
 
-## 🔗 Endpoints da API
+## 🏗️ Arquitetura do Projeto
 
-### 👤 Usuários
+O projeto segue uma **arquitetura em camadas**, separando claramente responsabilidades:
 
-| Método | Endpoint | Descrição |
-|------|---------|----------|
-| GET | `/usuarios` | Lista todos os usuários |
-| POST | `/usuarios` | Cria um novo usuário |
-| GET | `/usuarios/{id}` | Busca usuário por ID |
-| PUT | `/usuarios/{id}` | Atualiza usuário |
-| DELETE | `/usuarios/{id}` | Remove usuário |
+```
+controller  → Camada de API (REST)
+service     → Regras de negócio
+repository  → Persistência (JPA)
+dto         → Contratos de entrada e saída
+security    → Autenticação e contexto do usuário
+config      → Configurações gerais
+```
 
----
-
-### 💰 Transações
-
-| Método | Endpoint |
-|------|---------|
-| POST | `/transacoes` |
-| POST | `/transacoes/por-conta` |
-| POST | `/transacoes/transferir` |
-| GET | `/transacoes` |
-| GET | `/transacoes/{id}` |
-| GET | `/transacoes/por-conta/{numeroConta}` |
-| PUT | `/transacoes/{id}` |
-| DELETE | `/transacoes/{id}` |
+Essa separação facilita testes, manutenção e evolução do sistema.
 
 ---
-
-### 📊 Análise Financeira
-
-| Método | Endpoint |
-|------|---------|
-| GET | `/analise/resumo/{numeroConta}` |
-| GET | `/analise/despesas-por-categoria/{numeroConta}` |
-
----
-
-### 📄 Relatórios
-
-| Método | Endpoint |
-|------|---------|
-| GET | `/relatorios/excel/{numeroConta}` |
-| GET | `/relatorios/pdf/{numeroConta}` |
-
----
-
-## ⚠️ Tratamento de Erros
-
-Todas as exceções são centralizadas em `GlobalExceptionHandler`.
-
-**Formato padrão de resposta:**
-
-{
-  "timestamp": "2026-01-12T19:40:23",
-  "status": 404,
-  "error": "Mensagem de erro"
-}
-
----
-
-## ▶️ Como Executar o Projeto
-Pré-requisitos
-Java 21
-Docker e Docker Compose
-
-Executando com Docker:
-docker-compose up -d
-
-A API ficará disponível em:
-http://localhost:8080
-
-Executando localmente (sem Docker)
-./mvnw spring-boot:run
-
----
-
-## 📘 Documentação da API
-
-A documentação está disponível via Swagger UI, cobrindo os principais endpoints e contratos.
-
-http://localhost:8080/swagger-ui.html
-
-## 🧠 Decisões Técnicas
-
-BigDecimal foi utilizado para valores monetários, evitando erros de precisão.
-
-Transferências geram duas transações para manter histórico financeiro consistente.
-
-O saldo é calculado via consulta agregada no banco, evitando inconsistência de estado.
-
-Categoria é opcional para permitir modelagem adequada entre tipos de transação.
 
 ## 🔐 Segurança
 
-A autenticação e autorização não foram implementadas nesta fase, pois o foco da POC foi modelagem de domínio e regras de negócio.
+### Autenticação
 
-A estrutura já está preparada para futura inclusão de:
-Spring Security
-JWT
-Criptografia de senha
+* JWT (stateless)
+* Login via email e senha
+* Token contém:
 
-## 🧪 Status do Projeto
+    * `usuarioId`
+    * `numeroConta`
+    * `role`
+
+### Autorização
+
+* Roles:
+
+    * `ROLE_USER`
+    * `ROLE_ADMIN`
+* Controle via `@PreAuthorize` e validações no service
+
+📌 Todas as operações sensíveis utilizam o **usuário logado obtido a partir do token**, não por parâmetros de requisição.
+
+---
+
+## 💸 Modelo de Transações
+
+O domínio financeiro foi modelado com base em **movimentações**, não em saldo persistido.
+
+### Tipos suportados
+
+* **DEPÓSITO** → entrada de recursos
+* **TRANSFERÊNCIA** → saída e entrada entre contas
+
+📌 Não existe endpoint explícito de saque.
+Transferência representa qualquer débito de saldo, mantendo o modelo simples e coerente.
+
+---
+
+## 🌐 Integrações Externas
+
+### 🔹 API Mock de Saldo
+
+O saldo do usuário **não é persistido no banco**.
+Ele é obtido a partir de uma **API externa mockada**, simulando um core bancário.
+
+#### Contrato
+
+```
+GET /saldo/{numeroConta}
+
+{
+  "numeroConta": "70806207",
+  "saldo": 2500.75
+}
+```
+
+#### Decisão técnica
+
+* Evita duplicidade de estado
+* Simula arquitetura bancária real
+* Prepara o backend para integrações futuras
+
+📌 Nesta fase, o serviço de saldo é **mockado e dockerizado**.
+
+---
+
+### 🔹 BrasilAPI – Câmbio
+
+Foi integrada a **BrasilAPI** para permitir **consulta de moedas disponíveis** e **cotações do Real em relação a moedas estrangeiras**, exclusivamente para fins de consulta.
+
+#### Endpoints expostos pelo backend
+
+```
+GET /cambio/moedas
+GET /cambio/{moeda}/{data}
+```
+
+#### Observações importantes
+
+* Integração **somente leitura**
+* Nenhuma persistência em banco
+* Nenhuma dependência do domínio financeiro
+* Implementada como client isolado
+
+📌 A integração foi projetada para **não impactar regras de negócio existentes**, mantendo o core da aplicação estável.
+
+---
+
+## 🧪 Testes
+
+O projeto possui **testes unitários focados em regras de negócio**, cobrindo:
+
+* `TransacaoService`
+* `UsuarioService`
+* `AnaliseFinanceiraService`
+* `SaldoClient`
+
+Características:
+
+* JUnit 5 + Mockito
+* Sem subir Spring Context
+* Sem banco real
+* Mock do contexto de segurança (`SecurityUtils`)
+
+📌 Testes de PDF/Excel e controllers foram propositalmente deixados fora do escopo inicial.
+
+---
+
+## 🐳 Docker
+
+O projeto utiliza Docker para padronizar o ambiente.
+
+### Serviços dockerizados
+
+* PostgreSQL
+* API mock de saldo
+* Backend Spring Boot
+
+### Subir tudo via Docker
+
+```bash
+docker-compose up --build -d
+```
+
+### Desenvolvimento local (recomendado)
+
+* Backend rodando pela IDE
+* Docker apenas para Postgres e mock
+
+---
+
+## ▶️ Como Executar
+
+### Pré-requisitos
+
+* Java 21
+* Docker e Docker Compose
+
+### Rodar localmente
+
+```bash
+./mvnw spring-boot:run
+```
+
+### Rodar com Docker
+
+```bash
+docker-compose up --build -d
+```
+
+A aplicação ficará disponível em:
+
+```
+http://localhost:8080
+```
+
+---
+
+## 📖 Documentação da API
+
+Swagger UI disponível em:
+
+```
+http://localhost:8080/swagger-ui.html
+```
+
+---
+
+## 🧠 Decisões Técnicas Importantes
+
+* **Saldo externo**: evita inconsistência e simula core bancário
+* **BrasilAPI isolada**: integração externa somente leitura, sem acoplamento ao domínio
+* **Records em DTOs**: imutabilidade e clareza de contrato
+* **Sem saque explícito**: domínio baseado em movimentações
+* **Importação Excel sem @Transactional**: permite importação parcial
+* **Backend stateless**: escalável e alinhado a microsserviços
+
+---
+
+## 🚧 Fora do Escopo (Consciente)
+
+* Sincronização de saldo com transações
+* Cache / Redis
+* Circuit breaker
+* Observabilidade avançada
+* Frontend
+
+Esses pontos foram deixados fora propositalmente para manter foco no escopo principal.
+
+---
+
+## ✅ Status Final
 
 ✔️ Backend funcional
-✔️ Regras de negócio implementadas
-✔️ Relatórios funcionando
-✔️ Documentação clara
-✔️ Base sólida para evolução
+✔️ Arquitetura clara
+✔️ Integração externa demonstrada
+✔️ Dockerizado
+✔️ Testado
+✔️ Pronto para avaliação técnica
 
-## 🚫 Integração com câmbio foi descartada nesta fase (mantida apenas como conceito)
+---
 
-## 🚀 Próximos Passos
+## 👤 Autor
 
-Implementar autenticação (JWT)
-Paginação e filtros
-Testes automatizados
-Frontend (Angular)
-Evoluir Docker Compose (API + DB)
+Projeto desenvolvido como prova técnica para fins de demonstração de arquitetura e boas práticas em backend Java.

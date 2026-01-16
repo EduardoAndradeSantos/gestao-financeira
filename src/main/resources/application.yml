@@ -21,3 +21,6 @@ springdoc:
 saldo:
   api:
     url: ${SALDO_API_URL:http://localhost:3001}
+
+brasilapi:
+  url: https://brasilapi.com.br/api
