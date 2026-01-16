@@ -21,5 +21,20 @@ services:
       - "3001:3001"
     restart: always
 
+  api:
+    build: .
+    container_name: gestao_financeira_api
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+      - mock-saldo
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/finance_db
+      SPRING_DATASOURCE_USERNAME: admin
+      SPRING_DATASOURCE_PASSWORD: admin123
+      SALDO_API_URL: http://mock-saldo:3001
+    restart: always
+
 volumes:
   postgres-data:

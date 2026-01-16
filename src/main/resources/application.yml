@@ -20,4 +20,4 @@ springdoc:
 
 saldo:
   api:
-    url: http://localhost:3001
+    url: ${SALDO_API_URL:http://localhost:3001}
