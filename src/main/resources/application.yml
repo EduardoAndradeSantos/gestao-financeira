@@ -17,3 +17,7 @@ server:
 springdoc:
   swagger-ui:
     path: /swagger
+
+saldo:
+  api:
+    url: http://localhost:3001
