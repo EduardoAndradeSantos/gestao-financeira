@@ -8,6 +8,13 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * Controller responsável pela consulta de saldo da conta.
+ *
+ * O saldo não é calculado localmente,
+ * mas obtido através de um serviço externo
+ * via cliente HTTP (SaldoClient).
+ */
 @RestController
 @RequestMapping("/saldo")
 public class SaldoController {
