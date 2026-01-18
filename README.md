@@ -79,6 +79,20 @@ Essa separação facilita testes, manutenção e evolução do sistema.
 
 📌 Todas as operações sensíveis utilizam o **usuário logado obtido a partir do token**, não por parâmetros de requisição.
 
+## 👤 Tornando um usuário ADMIN
+
+O controle de permissões do sistema é baseado em **roles** (`USER` e `ADMIN`).
+
+### 🔧 Opção 1 — Atualização direta no banco (ambiente local/dev)
+
+Para promover um usuário a administrador em ambiente de desenvolvimento ou testes, basta atualizar o campo `role` na tabela de usuários:
+
+```sql
+UPDATE usuario
+SET role = 'ADMIN'
+WHERE email = 'usuario@email.com';
+```
+
 ---
 
 ## 💸 Modelo de Transações
@@ -259,6 +273,4 @@ Esses pontos foram deixados fora propositalmente para manter foco no escopo prin
 
 ---
 
-## 👤 Autor
 
-Projeto desenvolvido como prova técnica para fins de demonstração de arquitetura e boas práticas em backend Java.
