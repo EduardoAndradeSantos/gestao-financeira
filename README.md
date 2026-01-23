@@ -1,276 +1,157 @@
-# 💰 Gestão Financeira – Backend API
 
-API REST desenvolvida em **Java 21 + Spring Boot** para simular um sistema de gestão financeira bancária, com foco em **arquitetura limpa**, **boas práticas** e **integração com serviços externos**.
+# 💰 Gestão Financeira – API REST
 
-O projeto foi construído como **prova técnica / POC**, priorizando clareza de domínio, desacoplamento e facilidade de evolução.
+## 📌 Objetivo do Projeto
+Esta aplicação tem como objetivo fornecer uma **API RESTful para gestão financeira pessoal**, permitindo que usuários realizem:
+- Controle de receitas e despesas
+- Transferências entre contas
+- Geração de relatórios financeiros
+- Análises consolidadas por categoria
 
----
-
-## 📌 Objetivo
-
-Permitir que usuários:
-
-* Gerenciem seu perfil
-* Realizem transações financeiras (depósitos e transferências)
-* Consultem análises financeiras
-* Gerem relatórios em PDF e Excel
-
-Além disso, o projeto demonstra:
-
-* Autenticação e autorização com JWT
-* Integração com API externa (mock de saldo)
-* Uso de Docker para padronização de ambiente
-* Testes unitários focados em regras de negócio
+O foco do projeto está em **boas práticas de arquitetura, segurança, domínio e testes**, simulando um cenário real de backend corporativo.
 
 ---
 
-## 🛠️ Stack e Tecnologias
+## 🧱 Arquitetura
+O projeto segue uma arquitetura em camadas bem definida:
 
-* Java 21
-* Spring Boot
-* Spring Web
-* Spring Data JPA
-* Spring Security (JWT stateless)
-* PostgreSQL
-* Docker / Docker Compose
-* OpenAPI / Swagger
-* Apache POI (Excel)
-* OpenPDF (PDF)
-* JUnit 5 + Mockito
+- **Controller** → Camada de entrada (API REST)
+- **Service** → Regras de negócio e domínio
+- **Repository** → Persistência de dados (JPA)
+- **DTOs** → Contratos de entrada e saída
+- **Security** → Autenticação, autorização e contexto JWT
+- **Config** → Configurações globais da aplicação
 
----
-
-## 🏗️ Arquitetura do Projeto
-
-O projeto segue uma **arquitetura em camadas**, separando claramente responsabilidades:
-
-```
-controller  → Camada de API (REST)
-service     → Regras de negócio
-repository  → Persistência (JPA)
-dto         → Contratos de entrada e saída
-security    → Autenticação e contexto do usuário
-config      → Configurações gerais
-```
-
-Essa separação facilita testes, manutenção e evolução do sistema.
+Padrões utilizados:
+- MVC (adaptado para API REST)
+- DTO Pattern
+- Separation of Concerns
+- Stateless Authentication (JWT)
 
 ---
 
-## 🔐 Segurança
+## 🔐 Segurança e Autenticação
 
-### Autenticação
+A autenticação é baseada em **JWT (JSON Web Token)**.
 
-* JWT (stateless)
-* Login via email e senha
-* Token contém:
+### Fluxo de autenticação:
+1. Usuário realiza login via `/auth/login`
+2. A API valida e-mail e senha
+3. Um token JWT é gerado e retornado
+4. O token deve ser enviado no header:
+   ```
+   Authorization: Bearer <token>
+   ```
+5. O usuário autenticado é identificado automaticamente pelo backend
 
-    * `usuarioId`
-    * `numeroConta`
-    * `role`
+### Contexto do usuário
+O sistema **não recebe usuário ou conta via request**.
+Essas informações são sempre obtidas a partir do token JWT, garantindo segurança e consistência.
 
-### Autorização
+### Respostas de erro padronizadas
+- **401 Unauthorized**
+  ```json
+  { "erro": "Usuário precisa estar logado para acessar este recurso" }
+  ```
 
-* Roles:
+- **403 Forbidden**
+  ```json
+  { "erro": "Acesso negado" }
+  ```
 
-    * `ROLE_USER`
-    * `ROLE_ADMIN`
-* Controle via `@PreAuthorize` e validações no service
-
-📌 Todas as operações sensíveis utilizam o **usuário logado obtido a partir do token**, não por parâmetros de requisição.
-
-## 👤 Tornando um usuário ADMIN
-
-O controle de permissões do sistema é baseado em **roles** (`USER` e `ADMIN`).
-
-### 🔧 Opção 1 — Atualização direta no banco (ambiente local/dev)
-
-Para promover um usuário a administrador em ambiente de desenvolvimento ou testes, basta atualizar o campo `role` na tabela de usuários:
-
-```sql
-UPDATE usuario
-SET role = 'ADMIN'
-WHERE email = 'usuario@email.com';
-```
+- **400 Bad Request**
+  ```json
+  { "erro": "Credenciais inválidas" }
+  ```
 
 ---
 
 ## 💸 Modelo de Transações
 
-O domínio financeiro foi modelado com base em **movimentações**, não em saldo persistido.
+Tipos de transação:
+- **DEPOSITO**
+- **RETIRADA**
+- **TRANSFERENCIA**
 
-### Tipos suportados
+📌 Não existe endpoint explícito de saque.  
+No domínio da aplicação, qualquer saída de recursos é representada como **TRANSFERENCIA**, o que simplifica o modelo e evita duplicação de regras de negócio.
 
-* **DEPÓSITO** → entrada de recursos
-* **TRANSFERÊNCIA** → saída e entrada entre contas
-
-📌 Não existe endpoint explícito de saque.
-Transferência representa qualquer débito de saldo, mantendo o modelo simples e coerente.
-
----
-
-## 🌐 Integrações Externas
-
-### 🔹 API Mock de Saldo
-
-O saldo do usuário **não é persistido no banco**.
-Ele é obtido a partir de uma **API externa mockada**, simulando um core bancário.
-
-#### Contrato
-
-```
-GET /saldo/{numeroConta}
-
-{
-  "numeroConta": "70806207",
-  "saldo": 2500.75
-}
-```
-
-#### Decisão técnica
-
-* Evita duplicidade de estado
-* Simula arquitetura bancária real
-* Prepara o backend para integrações futuras
-
-📌 Nesta fase, o serviço de saldo é **mockado e dockerizado**.
+### Regras importantes:
+- DEPÓSITO → não possui categoria
+- RETIRADA → exige categoria
+- TRANSFERENCIA → sempre utiliza endpoint específico
 
 ---
 
-### 🔹 BrasilAPI – Câmbio
+## 📊 Análises Financeiras
 
-Foi integrada a **BrasilAPI** para permitir **consulta de moedas disponíveis** e **cotações do Real em relação a moedas estrangeiras**, exclusivamente para fins de consulta.
+Endpoints disponíveis:
+- `/analise/resumo`
+- `/analise/despesas-por-categoria`
 
-#### Endpoints expostos pelo backend
+Permitem:
+- Visualizar totais consolidados
+- Agrupar despesas por categoria
+- Base para geração de gráficos
 
-```
-GET /cambio/moedas
-GET /cambio/{moeda}/{data}
-```
+---
 
-#### Observações importantes
+## 📄 Relatórios
 
-* Integração **somente leitura**
-* Nenhuma persistência em banco
-* Nenhuma dependência do domínio financeiro
-* Implementada como client isolado
+A API permite exportação de relatórios para o usuário autenticado:
 
-📌 A integração foi projetada para **não impactar regras de negócio existentes**, mantendo o core da aplicação estável.
+### 📘 PDF
+- Resumo financeiro
+- Lista completa de transações
+
+### 📗 Excel
+- Aba **Relatório Financeiro** (dados completos)
+- Aba **Despesas por Categoria** (base para gráfico de pizza)
+
+📌 O layout da aba principal foi mantido estável para garantir compatibilidade.
+
+---
+
+## 🌎 Integração Externa
+
+Integração com **BrasilAPI** para consulta de moedas e cotações.
+Foi utilizada abstração via client dedicado, mantendo desacoplamento.
 
 ---
 
 ## 🧪 Testes
 
-O projeto possui **testes unitários focados em regras de negócio**, cobrindo:
-
-* `TransacaoService`
-* `UsuarioService`
-* `AnaliseFinanceiraService`
-* `SaldoClient`
-
-Características:
-
-* JUnit 5 + Mockito
-* Sem subir Spring Context
-* Sem banco real
-* Mock do contexto de segurança (`SecurityUtils`)
-
-📌 Testes de PDF/Excel e controllers foram propositalmente deixados fora do escopo inicial.
+- Testes unitários focados na camada **Service** e **Controller**
+- Validação de regras de negócio críticas
 
 ---
 
 ## 🐳 Docker
 
-O projeto utiliza Docker para padronizar o ambiente.
-
-### Serviços dockerizados
-
-* PostgreSQL
-* API mock de saldo
-* Backend Spring Boot
-
-### Subir tudo via Docker
-
+### Build das imagens
 ```bash
-docker-compose up --build -d
+docker-compose build
 ```
 
-### Desenvolvimento local (recomendado)
-
-* Backend rodando pela IDE
-* Docker apenas para Postgres e mock
-
----
-
-## ▶️ Como Executar
-
-### Pré-requisitos
-
-* Java 21
-* Docker e Docker Compose
-
-### Rodar localmente
-
+### Subir os containers
 ```bash
-./mvnw spring-boot:run
+docker-compose up -d
 ```
 
-### Rodar com Docker
-
-```bash
-docker-compose up --build -d
-```
-
-A aplicação ficará disponível em:
-
-```
-http://localhost:8080
-```
+Serviços:
+- API principal
+- PostgreSQL
+- Mock de saldo externo
 
 ---
 
-## 📖 Documentação da API
-
-Swagger UI disponível em:
-
-```
-http://localhost:8080/swagger-ui.html
-```
+## ✅ Status do Projeto
+✔ Funcional  
+✔ Seguro  
+✔ Dockerizado
+✔ Testado
 
 ---
 
-## 🧠 Decisões Técnicas Importantes
-
-* **Saldo externo**: evita inconsistência e simula core bancário
-* **BrasilAPI isolada**: integração externa somente leitura, sem acoplamento ao domínio
-* **Records em DTOs**: imutabilidade e clareza de contrato
-* **Sem saque explícito**: domínio baseado em movimentações
-* **Importação Excel sem @Transactional**: permite importação parcial
-* **Backend stateless**: escalável e alinhado a microsserviços
-
----
-
-## 🚧 Fora do Escopo (Consciente)
-
-* Sincronização de saldo com transações
-* Cache / Redis
-* Circuit breaker
-* Observabilidade avançada
-* Frontend
-
-Esses pontos foram deixados fora propositalmente para manter foco no escopo principal.
-
----
-
-## ✅ Status Final
-
-✔️ Backend funcional
-✔️ Arquitetura clara
-✔️ Integração externa demonstrada
-✔️ Dockerizado
-✔️ Testado
-✔️ Pronto para avaliação técnica
-
----
-
-
+## 📬 Contato
+Projeto desenvolvido por **Edu Andrade**
