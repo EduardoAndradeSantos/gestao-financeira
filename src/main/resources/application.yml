@@ -17,3 +17,10 @@ server:
 springdoc:
   swagger-ui:
     path: /swagger
+
+saldo:
+  api:
+    url: ${SALDO_API_URL:http://localhost:3001}
+
+brasilapi:
+  url: https://brasilapi.com.br/api

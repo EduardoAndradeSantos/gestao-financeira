@@ -7,13 +7,17 @@ import jakarta.validation.constraints.Size;
 import lombok.*;
 
 @Entity
-@Table(name = "usuarios", uniqueConstraints = {
-        @UniqueConstraint(columnNames = "cpf"),
-        @UniqueConstraint(columnNames = "email")
-})
+@Table(
+        name = "usuarios",
+        uniqueConstraints = {
+                @UniqueConstraint(columnNames = "cpf"),
+                @UniqueConstraint(columnNames = "email")
+        }
+)
 @Getter
 @Setter
-@NoArgsConstructor @AllArgsConstructor
+@NoArgsConstructor
+@AllArgsConstructor
 @Builder
 public class Usuario {
 
@@ -40,4 +44,8 @@ public class Usuario {
 
     @Column(unique = true, nullable = false)
     private String numeroConta;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private RoleUsuario role = RoleUsuario.USER;
 }

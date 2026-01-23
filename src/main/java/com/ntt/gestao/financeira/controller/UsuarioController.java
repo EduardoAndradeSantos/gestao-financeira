@@ -1,70 +1,69 @@
 package com.ntt.gestao.financeira.controller;
 
-import com.ntt.gestao.financeira.dto.request.UsuarioRequestDTO;
-import com.ntt.gestao.financeira.dto.response.ImportacaoUsuarioResultadoDTO;
+import com.ntt.gestao.financeira.dto.request.UsuarioUpdateRequestDTO;
 import com.ntt.gestao.financeira.dto.response.UsuarioResponseDTO;
 import com.ntt.gestao.financeira.service.UsuarioService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 
-import java.math.BigDecimal;
-import java.util.List;
-
+/**
+ * Controller responsável pelas operações de autoatendimento do usuário.
+ *
+ * Permite que o próprio usuário:
+ * - Consulte seus dados
+ * - Atualize suas informações
+ * - Troque sua senha
+ *
+ * Todas as operações são executadas no contexto
+ * do usuário autenticado.
+ */
 @RestController
 @RequestMapping("/usuarios")
 public class UsuarioController {
 
+    // Service responsável pela lógica de negócio do usuário
     private final UsuarioService service;
 
     public UsuarioController(UsuarioService service) {
         this.service = service;
     }
 
-    @PostMapping
-    @ResponseStatus(HttpStatus.CREATED)
-    public UsuarioResponseDTO criar(@Valid @RequestBody UsuarioRequestDTO dto) {
-        return service.salvar(dto);
+    /**
+     * Retorna os dados do usuário autenticado.
+     *
+     * Endpoint equivalente ao "perfil do usuário".
+     */
+    @GetMapping("/me")
+    public UsuarioResponseDTO me() {
+        return service.buscarUsuarioLogado();
     }
 
-    @GetMapping
-    public List<UsuarioResponseDTO> listar() {
-        return service.listar();
-    }
-
-    @GetMapping("/{id}")
-    public UsuarioResponseDTO buscar(@PathVariable Long id) {
-        return service.buscarPorId(id);
-    }
-
-    @PutMapping("/{id}")
-    public UsuarioResponseDTO atualizar(@PathVariable Long id,
-                                        @Valid @RequestBody UsuarioRequestDTO dto) {
-        return service.atualizar(id, dto);
-    }
-
-    @DeleteMapping("/{id}")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void deletar(@PathVariable Long id) {
-        service.deletar(id);
-    }
-
-    @GetMapping("/{conta}/saldo")
-    public BigDecimal consultarSaldo(@PathVariable String conta) {
-        return service.consultarSaldo(conta);
-    }
-
-    @PostMapping(
-            value = "/upload",
-            consumes = MediaType.MULTIPART_FORM_DATA_VALUE
-    )
-    @ResponseStatus(HttpStatus.CREATED)
-    public ImportacaoUsuarioResultadoDTO uploadUsuarios(
-            @RequestParam("file") MultipartFile file
+    /**
+     * Atualiza os dados do usuário autenticado.
+     *
+     * Não permite alterar dados sensíveis
+     * como senha ou permissões.
+     */
+    @PutMapping("/me")
+    public UsuarioResponseDTO atualizarMe(
+            @Valid @RequestBody UsuarioUpdateRequestDTO dto // Dados atualizáveis do usuário
     ) {
-        return service.importarUsuariosExcel(file);
+        return service.atualizarUsuarioLogado(dto);
     }
 
+    /**
+     * Permite ao usuário autenticado trocar sua própria senha.
+     *
+     * A senha atual é validada antes da alteração,
+     * garantindo segurança na operação.
+     */
+    @PutMapping("/me/senha")
+    @ResponseStatus(HttpStatus.NO_CONTENT) // Retorna HTTP 204 em caso de sucesso
+    public void trocarSenha(
+            @RequestParam String senhaAtual, // Senha atual do usuário
+            @RequestParam String novaSenha    // Nova senha desejada
+    ) {
+        service.trocarSenhaUsuarioLogado(senhaAtual, novaSenha);
+    }
 }

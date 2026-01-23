@@ -1,0 +1,205 @@
+openapi: 3.0.1
+info:
+  title: Gestão Financeira API
+  description: API REST para controle financeiro
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8080
+
+paths:
+
+  /usuarios:
+    get:
+      summary: Lista usuários
+      responses:
+        '200':
+          description: OK
+    post:
+      summary: Cria usuário
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UsuarioRequest'
+      responses:
+        '201':
+          description: Criado
+
+  /usuarios/{id}:
+    get:
+      summary: Busca usuário por ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: OK
+        '404':
+          description: Não encontrado
+
+    put:
+      summary: Atualiza usuário
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Atualizado
+
+    delete:
+      summary: Exclui usuário
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Excluído
+
+  /transacoes/por-conta:
+    post:
+      summary: Cria transação por número da conta
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransacaoPorContaRequest'
+      responses:
+        '201':
+          description: Criada
+
+  /transacoes/transferir:
+    post:
+      summary: Realiza transferência entre contas
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransferenciaRequest'
+      responses:
+        '200':
+          description: Transferência realizada
+
+  /transacoes/por-conta/{numeroConta}:
+    get:
+      summary: Lista transações por conta
+      parameters:
+        - in: path
+          name: numeroConta
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+
+  /analise/resumo/{numeroConta}:
+    get:
+      summary: Retorna resumo financeiro
+      parameters:
+        - in: path
+          name: numeroConta
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+
+  /analise/despesas-por-categoria/{numeroConta}:
+    get:
+      summary: Despesas agrupadas por categoria
+      parameters:
+        - in: path
+          name: numeroConta
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+
+  /relatorios/excel/{numeroConta}:
+    get:
+      summary: Gera relatório Excel
+      parameters:
+        - in: path
+          name: numeroConta
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Arquivo Excel
+
+  /relatorios/pdf/{numeroConta}:
+    get:
+      summary: Gera relatório PDF
+      parameters:
+        - in: path
+          name: numeroConta
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Arquivo PDF
+
+components:
+  schemas:
+
+    UsuarioRequest:
+      type: object
+      required: [nome, cpf, email, endereco, senha]
+      properties:
+        nome:
+          type: string
+        cpf:
+          type: string
+        email:
+          type: string
+        endereco:
+          type: string
+        senha:
+          type: string
+
+    TransacaoPorContaRequest:
+      type: object
+      required: [descricao, valor, tipo, numeroConta]
+      properties:
+        descricao:
+          type: string
+        valor:
+          type: number
+        tipo:
+          type: string
+          enum: [DEPOSITO, RETIRADA, TRANSFERENCIA]
+        categoria:
+          type: string
+        numeroConta:
+          type: string
+
+    TransferenciaRequest:
+      type: object
+      required: [descricao, valor, contaOrigem, contaDestino]
+      properties:
+        descricao:
+          type: string
+        valor:
+          type: number
+        contaOrigem:
+          type: string
+        contaDestino:
+          type: string

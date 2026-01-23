@@ -1,87 +1,91 @@
 package com.ntt.gestao.financeira.service;
 
-import com.ntt.gestao.financeira.dto.request.UsuarioRequestDTO;
+import com.ntt.gestao.financeira.dto.request.UsuarioUpdateRequestDTO;
 import com.ntt.gestao.financeira.dto.response.ImportacaoUsuarioResultadoDTO;
 import com.ntt.gestao.financeira.dto.response.UsuarioResponseDTO;
+import com.ntt.gestao.financeira.entity.RoleUsuario;
 import com.ntt.gestao.financeira.entity.Usuario;
 import com.ntt.gestao.financeira.exception.ConflitoDeDadosException;
 import com.ntt.gestao.financeira.exception.RecursoNaoEncontradoException;
-import com.ntt.gestao.financeira.repository.TransacaoRepository;
 import com.ntt.gestao.financeira.repository.UsuarioRepository;
-import org.springframework.stereotype.Service;
-import org.apache.poi.ss.usermodel.*;
+import com.ntt.gestao.financeira.security.SecurityUtils;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
+
 @Service
 public class UsuarioService {
 
     private final UsuarioRepository repository;
-    private final TransacaoRepository transacaoRepository;
+    private final PasswordEncoder passwordEncoder;
 
-    public UsuarioService(UsuarioRepository repository, TransacaoRepository transacaoRepository) {
+    public UsuarioService(
+            UsuarioRepository repository,
+            PasswordEncoder passwordEncoder
+    ) {
         this.repository = repository;
-        this.transacaoRepository = transacaoRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
-    public UsuarioResponseDTO salvar(UsuarioRequestDTO dto) {
-        if (repository.existsByCpf(dto.cpf())) {
-            throw new ConflitoDeDadosException("CPF já cadastrado!");
-        }
-        if (repository.existsByEmail(dto.email())) {
-            throw new ConflitoDeDadosException("Email já cadastrado!");
+    /* ==========================================================
+       ===================== SELF-SERVICE =======================
+       ========================================================== */
 
-        }
+    public UsuarioResponseDTO buscarUsuarioLogado() {
 
-        Usuario usuario = Usuario.builder()
-                .nome(dto.nome())
-                .cpf(dto.cpf())
-                .endereco(dto.endereco())
-                .email(dto.email())
-                .senha(dto.senha())
-                .numeroConta(gerarNumeroConta())
-                .build();
+        Long usuarioId = SecurityUtils.getUsuarioId();
 
-        Usuario salvo = repository.save(usuario);
-        return toDTO(salvo);
+        Usuario usuario = repository.findById(usuarioId)
+                .orElseThrow(() ->
+                        new RecursoNaoEncontradoException("Usuário não encontrado"));
+
+        return toResponseDTO(usuario);
     }
 
-    public List<UsuarioResponseDTO> listar() {
-        return repository.findAll().stream().map(this::toDTO).toList();
-    }
+    public UsuarioResponseDTO atualizarUsuarioLogado(UsuarioUpdateRequestDTO dto) {
 
-    public UsuarioResponseDTO buscarPorId(Long id) {
-        Usuario usuario = repository.findById(id)
-                .orElseThrow(() -> new RecursoNaoEncontradoException("Usuário não encontrado!"));
-        return toDTO(usuario);
-    }
+        Long usuarioId = SecurityUtils.getUsuarioId();
 
-    public UsuarioResponseDTO atualizar(Long id, UsuarioRequestDTO dto) {
-        Usuario usuario = repository.findById(id)
-                .orElseThrow(() -> new RecursoNaoEncontradoException("Usuário não encontrado!"));
+        Usuario usuario = repository.findById(usuarioId)
+                .orElseThrow(() ->
+                        new RecursoNaoEncontradoException("Usuário não encontrado"));
 
         usuario.setNome(dto.nome());
         usuario.setEndereco(dto.endereco());
-        usuario.setEmail(dto.email());
-        usuario.setSenha(dto.senha());
 
-        return toDTO(repository.save(usuario));
+        return toResponseDTO(repository.save(usuario));
     }
 
-    public void deletar(Long id) {
-        repository.deleteById(id);
+    public void trocarSenhaUsuarioLogado(String senhaAtual, String novaSenha) {
+
+        Long usuarioId = SecurityUtils.getUsuarioId();
+
+        Usuario usuario = repository.findById(usuarioId)
+                .orElseThrow(() ->
+                        new RecursoNaoEncontradoException("Usuário não encontrado"));
+
+        if (!passwordEncoder.matches(senhaAtual, usuario.getSenha())) {
+            throw new ConflitoDeDadosException("Senha atual inválida");
+        }
+
+        usuario.setSenha(passwordEncoder.encode(novaSenha));
+        repository.save(usuario);
     }
 
-    private String gerarNumeroConta() {
-        // Exemplo simples: 8 dígitos aleatórios
-        return String.valueOf((int) (Math.random() * 90000000) + 10000000);
-    }
+    /* ==========================================================
+       ===================== MAPEAMENTO =========================
+       ========================================================== */
 
-    private UsuarioResponseDTO toDTO(Usuario usuario) {
+    private UsuarioResponseDTO toResponseDTO(Usuario usuario) {
         return new UsuarioResponseDTO(
                 usuario.getId(),
                 usuario.getNome(),
@@ -92,66 +96,97 @@ public class UsuarioService {
         );
     }
 
-    public BigDecimal consultarSaldo(String numeroConta) {
-        Usuario usuario = repository.findByNumeroConta(numeroConta)
-                .orElseThrow(() -> new RecursoNaoEncontradoException("Conta não encontrada"));
+    public ImportacaoUsuarioResultadoDTO importarUsuariosViaExcel(MultipartFile file) {
 
-        return transacaoRepository.calcularSaldoUsuario(usuario.getId());
-    }
+        if (file.isEmpty()) {
+            throw new ConflitoDeDadosException("Arquivo Excel vazio");
+        }
 
-    public ImportacaoUsuarioResultadoDTO importarUsuariosExcel(MultipartFile arquivo) {
+        List<Usuario> usuariosSalvos = new ArrayList<>();
+        List<String> erros = new ArrayList<>();
+        int totalLinhas = 0;
 
-        int sucesso = 0;
-        int erros = 0;
-        List<String> mensagensErro = new ArrayList<>();
-
-        try (Workbook workbook = new XSSFWorkbook(arquivo.getInputStream())) {
+        try (Workbook workbook = new XSSFWorkbook(file.getInputStream())) {
 
             Sheet sheet = workbook.getSheetAt(0);
-            int totalLinhas = sheet.getPhysicalNumberOfRows() - 1;
+            totalLinhas = sheet.getLastRowNum();
 
-            for (int i = 1; i <= totalLinhas; i++) {
+            for (int i = 1; i <= sheet.getLastRowNum(); i++) {
                 Row row = sheet.getRow(i);
 
-                try {
-                    String nome = row.getCell(0).getStringCellValue();
-                    String cpf = row.getCell(1).getStringCellValue();
-                    String endereco = row.getCell(2).getStringCellValue();
-                    String email = row.getCell(3).getStringCellValue();
-                    String senha = row.getCell(4).getStringCellValue();
+                if (row == null || getCellAsString(row, 0).isBlank()) {
+                    continue;
+                }
 
+                try {
                     Usuario usuario = Usuario.builder()
-                            .nome(nome)
-                            .cpf(cpf)
-                            .endereco(endereco)
-                            .email(email)
-                            .senha(senha)
+                            .nome(getCellAsString(row, 0))
+                            .cpf(getCellAsString(row, 1))
+                            .email(getCellAsString(row, 2))
+                            .endereco(getCellAsString(row, 3))
+                            .senha(passwordEncoder.encode(
+                                    getCellAsString(row, 4)
+                            ))
                             .numeroConta(gerarNumeroConta())
+                            .role(RoleUsuario.USER)
                             .build();
 
-                    if (repository.existsByCpf(cpf) || repository.existsByEmail(email)) {
-                        throw new RuntimeException("CPF ou email já cadastrado");
-                    }
-
-                    repository.save(usuario);
-                    sucesso++;
+                    usuariosSalvos.add(repository.save(usuario));
 
                 } catch (Exception e) {
-                    erros++;
-                    mensagensErro.add("Linha " + (i + 1) + ": " + e.getMessage());
+                    erros.add("Linha " + (i + 1) + ": " + e.getMessage());
                 }
             }
 
-            return new ImportacaoUsuarioResultadoDTO(
-                    totalLinhas,
-                    sucesso,
-                    erros,
-                    mensagensErro
-            );
-
         } catch (Exception e) {
-            throw new RuntimeException("Erro ao processar o arquivo Excel");
+            throw new RuntimeException("Erro ao processar arquivo Excel", e);
         }
+
+        int sucesso = usuariosSalvos.size();
+        int totalErros = erros.size();
+
+        return new ImportacaoUsuarioResultadoDTO(
+                totalLinhas,
+                sucesso,
+                totalErros,
+                erros
+        );
     }
+
+    private String gerarNumeroConta() {
+        String numeroConta;
+        do {
+            numeroConta = String.valueOf(
+                    10000000 + (int) (Math.random() * 90000000)
+            );
+        } while (repository.existsByNumeroConta(numeroConta));
+
+        return numeroConta;
+    }
+
+    private String getCellAsString(Row row, int index) {
+        if (row == null) {
+            return "";
+        }
+
+        var cell = row.getCell(index);
+
+        if (cell == null) {
+            return "";
+        }
+
+        return switch (cell.getCellType()) {
+            case STRING -> cell.getStringCellValue().trim();
+            case NUMERIC -> {
+                // evita .0 e problemas de CPF
+                yield BigDecimal.valueOf(cell.getNumericCellValue())
+                        .toPlainString();
+            }
+            case BOOLEAN -> String.valueOf(cell.getBooleanCellValue());
+            case FORMULA -> cell.getCellFormula();
+            default -> "";
+        };
+    }
+
 
 }

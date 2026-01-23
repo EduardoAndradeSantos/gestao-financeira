@@ -6,44 +6,58 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+/**
+ * Controller responsável pela geração de relatórios financeiros.
+ *
+ * Permite ao usuário autenticado exportar seus dados
+ * em formatos PDF e Excel.
+ */
 @RestController
 @RequestMapping("/relatorios")
 public class RelatorioController {
 
+    // Service responsável pela geração dos relatórios
     private final RelatorioService service;
 
     public RelatorioController(RelatorioService service) {
         this.service = service;
     }
 
-    @GetMapping("/{numeroConta}/excel")
-    public ResponseEntity<byte[]> baixarExcel(@PathVariable String numeroConta) {
+    /**
+     * Gera o relatório financeiro em formato PDF.
+     *
+     * O arquivo é retornado como download,
+     * utilizando headers HTTP apropriados.
+     */
+    @GetMapping("/pdf")
+    public ResponseEntity<byte[]> gerarPdf() {
 
-        byte[] arquivo = service.gerarRelatorioExcel(numeroConta);
-
-        return ResponseEntity.ok()
-                .header(
-                        HttpHeaders.CONTENT_DISPOSITION,
-                        "attachment; filename=relatorio-financeiro.xlsx"
-                )
-                .contentType(
-                        MediaType.APPLICATION_OCTET_STREAM
-                )
-                .body(arquivo);
-    }
-
-    @GetMapping("/{numeroConta}/pdf")
-    public ResponseEntity<byte[]> baixarPdf(@PathVariable String numeroConta) {
-
-        byte[] arquivo = service.gerarRelatorioPdf(numeroConta);
+        // Gera o PDF com base nos dados do usuário autenticado
+        byte[] pdf = service.gerarPdfUsuarioLogado();
 
         return ResponseEntity.ok()
-                .header(
-                        HttpHeaders.CONTENT_DISPOSITION,
-                        "attachment; filename=relatorio-financeiro.pdf"
-                )
-                .contentType(MediaType.APPLICATION_PDF)
-                .body(arquivo);
+                // Indica ao navegador que o conteúdo é um arquivo para download
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=relatorio.pdf")
+                .contentType(MediaType.APPLICATION_PDF) // Define o tipo de conteúdo como PDF
+                .body(pdf);
     }
 
+    /**
+     * Gera o relatório financeiro em formato Excel (.xlsx).
+     *
+     * O arquivo é retornado como download,
+     * permitindo abertura em ferramentas como Excel ou LibreOffice.
+     */
+    @GetMapping("/excel")
+    public ResponseEntity<byte[]> gerarExcel() {
+
+        // Gera o arquivo Excel com base nos dados do usuário autenticado
+        byte[] excel = service.gerarExcelUsuarioLogado();
+
+        return ResponseEntity.ok()
+                // Indica ao navegador que o conteúdo é um arquivo para download
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=relatorio.xlsx")
+                .contentType(MediaType.APPLICATION_OCTET_STREAM) // Tipo genérico para arquivos binários
+                .body(excel);
+    }
 }
