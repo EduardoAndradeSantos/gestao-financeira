@@ -97,7 +97,6 @@ class TransacaoServiceTest {
 
         TransacaoTransferenciaDTO dto =
                 new TransacaoTransferenciaDTO(
-                        "111",
                         "222",
                         new BigDecimal("100"),
                         "PIX"
@@ -123,7 +122,6 @@ class TransacaoServiceTest {
 
         TransacaoTransferenciaDTO dto =
                 new TransacaoTransferenciaDTO(
-                        "111",
                         "222",
                         new BigDecimal("100"),
                         "PIX"

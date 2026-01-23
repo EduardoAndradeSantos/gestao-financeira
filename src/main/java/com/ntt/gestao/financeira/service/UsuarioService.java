@@ -90,8 +90,8 @@ public class UsuarioService {
                 usuario.getId(),
                 usuario.getNome(),
                 usuario.getCpf(),
-                usuario.getEmail(),
                 usuario.getEndereco(),
+                usuario.getEmail(),
                 usuario.getNumeroConta()
         );
     }
