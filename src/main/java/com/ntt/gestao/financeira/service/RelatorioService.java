@@ -5,6 +5,7 @@ import com.lowagie.text.Font;
 import com.lowagie.text.pdf.PdfPCell;
 import com.lowagie.text.pdf.PdfPTable;
 import com.lowagie.text.pdf.PdfWriter;
+import com.ntt.gestao.financeira.dto.response.DespesaPorCategoriaDTO;
 import com.ntt.gestao.financeira.entity.Transacao;
 import com.ntt.gestao.financeira.entity.TipoTransacao;
 import com.ntt.gestao.financeira.entity.Usuario;
@@ -183,9 +184,12 @@ public class RelatorioService {
                 row.createCell(5).setCellValue(moeda.format(t.getValor()));
             }
 
+            // Ajusta colunas da primeira aba
             for (int i = 0; i < headers.length; i++) {
                 sheet.autoSizeColumn(i);
             }
+
+            criarAbaDespesasPorCategoria(workbook, usuario.getId());
 
             ByteArrayOutputStream out = new ByteArrayOutputStream();
             workbook.write(out);
@@ -194,6 +198,47 @@ public class RelatorioService {
         } catch (Exception e) {
             throw new RuntimeException("Erro ao gerar relatório Excel", e);
         }
+    }
+
+    private void criarAbaDespesasPorCategoria(
+            Workbook workbook,
+            Long usuarioId
+    ) {
+
+        // Nova aba
+        Sheet sheet = workbook.createSheet("Despesas por Categoria");
+
+        // Fonte em negrito
+        org.apache.poi.ss.usermodel.Font boldFont = workbook.createFont();
+        boldFont.setBold(true);
+
+        CellStyle headerStyle = workbook.createCellStyle();
+        headerStyle.setFont(boldFont);
+        headerStyle.setFillForegroundColor(IndexedColors.GREY_25_PERCENT.getIndex());
+        headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+
+        // Cabeçalho
+        Row header = sheet.createRow(0);
+        header.createCell(0).setCellValue("Categoria");
+        header.createCell(1).setCellValue("Total");
+
+        header.getCell(0).setCellStyle(headerStyle);
+        header.getCell(1).setCellStyle(headerStyle);
+
+        // Busca despesas agrupadas por categoria
+        List<DespesaPorCategoriaDTO> despesas =
+                transacaoRepository.totalDespesasPorCategoria(usuarioId);
+
+        int rowIdx = 1;
+
+        for (DespesaPorCategoriaDTO d : despesas) {
+            Row row = sheet.createRow(rowIdx++);
+            row.createCell(0).setCellValue(d.categoria().name());
+            row.createCell(1).setCellValue(d.total().doubleValue());
+        }
+
+        sheet.autoSizeColumn(0);
+        sheet.autoSizeColumn(1);
     }
 
     /* ==========================================================
