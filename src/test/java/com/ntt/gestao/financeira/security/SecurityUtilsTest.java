@@ -11,11 +11,9 @@ import static org.junit.jupiter.api.Assertions.*;
 
 public class SecurityUtilsTest {
 
-    private UserPrincipal principal;
-
     @BeforeEach
     void setup() {
-        principal = new UserPrincipal(
+        UserPrincipal principal = new UserPrincipal(
                 1L,
                 "edu@email.com",
                 "12345678",
